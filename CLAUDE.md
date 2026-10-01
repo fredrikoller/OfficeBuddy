@@ -28,7 +28,7 @@ and see who is in the office. Starts with Trollhättan, must support multiple of
 
 ### Stack
 
-- API: ASP.NET Core minimal API, .NET 10, EF Core (SQLite in dev, Azure SQL in prod)
+- API: ASP.NET Core minimal API, .NET 10, EF Core with SQL Server (local SQL Server in dev, Azure SQL in prod)
 - Tab: React + TypeScript, Fluent UI v9 (`@fluentui/react-components`), `@microsoft/teams-js`
 - Tooling: Microsoft 365 Agents Toolkit (VS Code) for manifest, Entra app, debugging
 
@@ -46,6 +46,28 @@ dotnet watch --project OfficeBuddy.Api                        # hot reload
 In Development the OpenAPI document is at `/openapi/v1.json` (no Swagger UI). Manual requests
 live in `api/OfficeBuddy.Api/OfficeBuddy.Api.http` – keep it in sync with the endpoints.
 No tests exist yet.
+
+Database (dev): local SQL Server default instance, database `OfficeBuddy`, Windows auth
+(connection string `OfficeBuddy` in `appsettings.Development.json`). In Development the app runs
+`Database.Migrate()` at startup, then `UseSeeding` adds the office "Trollhättan".
+Migrations live in `Data/Migrations`; `dotnet-ef` is a local tool (`api/dotnet-tools.json`):
+
+```bash
+dotnet tool restore
+dotnet ef migrations add <Name> --project OfficeBuddy.Api --output-dir Data/Migrations
+dotnet ef database update --project OfficeBuddy.Api
+```
+
+API code layout: entities and `OfficeBuddyDbContext` in `Data/`; endpoints grouped per area as
+`Map…Endpoints()` extension methods (e.g. `OfficeEndpoints.cs`, `MapGroup("/api/offices")`),
+called from `Program.cs`. Endpoints return DTO records, not entities.
+
+Tab (`tab/`, created with Agents Toolkit – Teams SDK v2 Node server that serves a Vite/React tab):
+open `tab/` as its own VS Code workspace (`code tab`) and press F5 – `.vscode/` and
+`m365agents.yml` must be at the workspace root. The Edge launch configs use a persistent debug
+profile (`userDataDir` = `%LOCALAPPDATA%/edge-teams-debug`); sign in once with the dev tenant
+account, and make sure the Agents Toolkit extension is signed in to the same account
+(`${account-hint}`).
 
 ### Data model
 
@@ -71,10 +93,16 @@ Planned:
 
 ### Pitfalls already encountered
 
-- **Teams CLI v3** changed syntax: `teams project new <language> <name> --template <template>`
-  (not `teams.cli new ...`). Unclear whether a `tab` template exists – run
-  `teams project new typescript --help`. Fallback: Agents Toolkit in VS Code → Teams App → Tab,
-  or `atk new` (interactive) / `atk list templates`.
+- **Teams CLI v3** (`teams project new typescript <name> --template tab`) only produces a
+  bot+static-tab hybrid with no manifest/`m365agents.yml`/F5 – use Agents Toolkit instead.
+- **`atk` CLI install** (`@microsoft/m365agentstoolkit-cli`) fails with `EEXIST ... npm	eamsapp`
+  if the old `@microsoft/teamsapp-cli` is installed – uninstall that first.
+- **Tab template ≠ target yet:** it uses `staticTabs`, no `webApplicationInfo`, no Fluent UI,
+  and Graph via `@microsoft/teams.client`. Rework in steps 4–5.
+- **Delete behavior:** `Office` → `WorkplaceEntries`/`ChannelOffices` is `Restrict` (an office
+  in use cannot be deleted – `DELETE /offices/{id}` must handle that), `Person` →
+  `WorkplaceEntries` is `Cascade`. SQL Server rejects multiple cascade paths, so keep it that way.
+- **Global `dotnet-ef`** may be an older version – use the local tool (`dotnet ef` from `api/`).
 - **Time zone:** use `Europe/Stockholm` explicitly for "today" – Azure runs on UTC.
 - **Secrets:** Agents Toolkit creates `env/.env.*.user` and `.localConfigs` – must not be committed.
   Also ignore `*.db`, `bin/`, `obj/`, `node_modules/`, `.env*.local`.
@@ -100,9 +128,9 @@ Planned:
 
 ### Plan
 
-1. Repo + `.gitignore` + README
-2. Scaffold the tab with Agents Toolkit, get the untouched template running with F5 in Teams
-3. API skeleton: models, DbContext, `GET /offices` without auth – verify with curl
+1. ✅ Repo + `.gitignore` + README
+2. ✅ Scaffold the tab with Agents Toolkit, get the untouched template running with F5 in Teams
+3. ✅ API skeleton: models, DbContext, `GET /offices` without auth – verify with curl
 4. Add SSO validation, connect the tab to the API
 5. Config page + channel→office mapping
 6. My week (read/save)
