@@ -55,3 +55,17 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Local databases (SQLite in dev)
+*.db
+*.db-shm
+*.db-wal
+
+# Node / tab
+node_modules/
+.env*.local
+
+# Microsoft 365 Agents Toolkit (local secrets and generated config)
+env/.env.*.user
+.localConfigs
+.localConfigs.*
