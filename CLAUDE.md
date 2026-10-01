@@ -69,6 +69,13 @@ profile (`userDataDir` = `%LOCALAPPDATA%/edge-teams-debug`); sign in once with t
 account, and make sure the Agents Toolkit extension is signed in to the same account
 (`${account-hint}`).
 
+Tenants: development happens in a separate dev tenant; production is Consid's tenant. Agents
+Toolkit provisions into the tenant of the account it is signed in to and records the result per
+environment in `tab/env/.env.<env>` (`local`/`dev` = dev tenant, `consid` = Consid tenant) – switch
+the signed-in account when switching environment. The API is single-tenant; the tenant comes from
+the `AzureAd` config section (Microsoft.Identity.Web). `oid` values differ per tenant, so dev
+test data cannot be reused in Consid.
+
 ### Data model
 
 - `Office` (Id, Name)
@@ -117,6 +124,9 @@ Planned:
   in from? (Currently: the office they filled in from.)
 - Hosting: Azure Static Web Apps (tab) + App Service or Container Apps (API)?
 - Repo in Consid's GitHub organization – check with the org admin.
+- Consid tenant – check with Consid IT before step 9: may we create app registrations, who grants
+  admin consent for `access_as_user`, is sideloading allowed or must a Teams admin publish to the
+  org app catalog, and who assigns the `Admin` app role.
 - Inform employees about what data is stored (GDPR). Expose DisplayName only, never email.
 
 ### Working conventions

@@ -1,41 +1,36 @@
+using Microsoft.EntityFrameworkCore;
+using OfficeBuddy.Api;
+using OfficeBuddy.Api.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddDbContext<OfficeBuddyDbContext>(options => options
+    .UseSqlServer(builder.Configuration.GetConnectionString("OfficeBuddy"))
+    .UseSeeding((context, _) =>
+    {
+        var db = (OfficeBuddyDbContext)context;
+        if (!db.Offices.Any())
+        {
+            db.Offices.Add(new Office { Name = "Trollhättan" });
+            db.SaveChanges();
+        }
+    }));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    // Apply pending migrations (and run UseSeeding) on startup in dev only.
+    using var scope = app.Services.CreateScope();
+    scope.ServiceProvider.GetRequiredService<OfficeBuddyDbContext>().Database.Migrate();
 }
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.MapOfficeEndpoints();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

@@ -1,24 +1,23 @@
-namespace OfficeBuddy.Api.Endpoints;
+using Microsoft.EntityFrameworkCore;
+using OfficeBuddy.Api.Data;
+
+namespace OfficeBuddy.Api;
+
+public record OfficeDto(int Id, string Name);
 
 public static class OfficeEndpoints
 {
-    public static void MapOfficeEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapOfficeEndpoints(this IEndpointRouteBuilder app)
     {
-        var api = app.MapGroup("/api").RequireAuthorization();
+        var offices = app.MapGroup("/api/offices").WithTags("Offices");
 
-        api.MapGet("/offices", async (AppDbContext db) =>
-            await db.Offices.OrderBy(o => o.Name).ToListAsync());
+        offices.MapGet("/", async (OfficeBuddyDbContext db) =>
+            await db.Offices
+                .OrderBy(o => o.Name)
+                .Select(o => new OfficeDto(o.Id, o.Name))
+                .ToListAsync())
+            .WithName("GetOffices");
 
-        api.MapGet("/offices/{id:int}", async (int id, AppDbContext db) =>
-            await db.Offices.FindAsync(id) is { } office
-                ? Results.Ok(office)
-                : Results.NotFound());
-
-        api.MapPost("/offices", async (Office office, AppDbContext db) =>
-        {
-            db.Offices.Add(office);
-            await db.SaveChangesAsync();
-            return Results.Created($"/api/offices/{office.Id}", office);
-        }).RequireAuthorization("Admin");
+        return app;
     }
 }
