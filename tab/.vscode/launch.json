@@ -5,7 +5,6 @@
       "name": "Launch App in Teams (Edge)",
       "type": "msedge",
       "request": "launch",
-      "userDataDir": "${env:LOCALAPPDATA}/edge-teams-debug",
       "url": "https://teams.microsoft.com/l/app/${{local:TEAMS_APP_ID}}?installAppPackage=true&webjoin=true&${account-hint}",
       "cascadeTerminateToConfigurations": [
         "Attach to Local Service"
@@ -46,7 +45,6 @@
       "name": "View Remote App in Teams (Edge)",
       "type": "msedge",
       "request": "launch",
-      "userDataDir": "${env:LOCALAPPDATA}/edge-teams-debug",
       "url": "https://teams.microsoft.com/l/app/${{TEAMS_APP_ID}}?installAppPackage=true&webjoin=true&${account-hint}",
       "presentation": {
         "group": "3-remote",

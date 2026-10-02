@@ -12,7 +12,9 @@ export default function App() {
       teamsJs.app.initialize().then(() => {
         teamsJs.app.getContext().then((context: teamsJs.app.Context) => {
           if (context?.app?.host?.name) {
-            setContent(`Your app is running in ${context.app.host.name}`);
+            setContent(
+              `Your app is running in ${context.app.host.name} and the current theme is ${context.app.theme}.`,
+            );
           }
         });
       });
