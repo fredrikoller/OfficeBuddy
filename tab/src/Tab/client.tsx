@@ -31,7 +31,6 @@ function Root() {
       .then(() => teamsJs.app.getContext())
       .then((context) => {
         setTheme(toFluentTheme(context.app.theme));
-        console.log("Teams context:", context);
         teamsJs.app.registerOnThemeChangeHandler((teamsTheme) =>
           setTheme(toFluentTheme(teamsTheme)),
         );
