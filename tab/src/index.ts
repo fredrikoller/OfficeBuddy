@@ -33,7 +33,13 @@ const app = new App({
   skipAuth: true,
 });
 
-app.tab("home", path.join(__dirname, "./client"));
+const clientDir = path.join(__dirname, "./client");
+app.tab("home", clientDir);
+
+// The config page is a client-side route of the same SPA – serve its entry point for that path too.
+(adapter as any).express.get("/tabs/home/config", (_req: any, res: any) =>
+  res.sendFile(path.join(clientDir, "index.html")),
+);
 
 (async () => {
   await app.start(process.env.PORT || 3978);

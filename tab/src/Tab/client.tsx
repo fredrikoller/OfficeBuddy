@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import * as teamsJs from "@microsoft/teams-js";
 import App from "./App";
+import ConfigPage from "./ConfigPage";
 import {
   FluentProvider,
   teamsDarkTheme,
@@ -21,6 +22,9 @@ const toFluentTheme = (teamsTheme: string | undefined): Theme => {
       return teamsLightTheme;
   }
 };
+
+// Routes: /tabs/home/config = config page (configurationUrl), everything else = main view.
+const isConfigRoute = window.location.pathname.replace(/\/$/, "").endsWith("/config");
 
 function Root() {
   const [theme, setTheme] = useState<Theme>(teamsLightTheme);
@@ -43,7 +47,7 @@ function Root() {
 
   return (
     <FluentProvider theme={theme}>
-      <App />
+      {isConfigRoute ? <ConfigPage /> : <App />}
     </FluentProvider>
   );
 }

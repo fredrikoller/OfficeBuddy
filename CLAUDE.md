@@ -115,6 +115,10 @@ Planned:
   Also ignore `*.db`, `bin/`, `obj/`, `node_modules/`, `.env*.local`.
 - **Manifest:** `configurableTabs` (scope `team`, context `channelTab`) instead of `staticTabs`;
   `webApplicationInfo` is required for SSO; add the API domain under `validDomains`.
+- **Changing tab type in the manifest:** `teamsApp/update` does not remove features in Developer
+  Portal (the old `staticTabs` remained as a "Personal app" after switching to `configurableTabs`).
+  Delete the old feature in Developer Portal, bump `version`, and remove the app from the team
+  before re-adding it.
 - **Entra:** Expose an API with scope `access_as_user`, pre-authorize the Teams client IDs
   `1fec8e78-bce4-4aaf-ab1b-5451cc387264` and `5e3ce6c0-2b1f-4285-8d4b-75ee78787346`.
 
