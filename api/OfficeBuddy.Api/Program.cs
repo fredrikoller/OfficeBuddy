@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Identity.Web;
 using OfficeBuddy.Api;
 using OfficeBuddy.Api.Data;
+using System.Linq;
 
 const string TabCorsPolicy = "Tab";
 
@@ -22,7 +27,9 @@ builder.Services.AddAuthorizationBuilder()
     .SetDefaultPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .RequireScope("access_as_user")
-        .Build());
+        .Build())
+    // Applied on top of the default policy by the endpoints that need it.
+    .AddPolicy(Policies.Admin, policy => policy.RequireRole(Policies.AdminRole));
 
 // The tab calls the API from the browser, so its origin must be allowed explicitly.
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
@@ -67,5 +74,7 @@ app.UseAuthorization();
 // Everything under /api requires a valid SSO token.
 var api = app.MapGroup("/api").RequireAuthorization();
 api.MapOfficeEndpoints();
+api.MapChannelEndpoints();
+api.MapMeEndpoints();
 
 app.Run();

@@ -20,7 +20,7 @@ public class OfficeBuddyDbContext(DbContextOptions<OfficeBuddyDbContext> options
         modelBuilder.Entity<ChannelOffice>(e =>
         {
             e.HasKey(c => c.ChannelId);
-            e.Property(c => c.ChannelId).HasMaxLength(200);
+            e.Property(c => c.ChannelId).HasMaxLength(ChannelOffice.ChannelIdMaxLength);
             e.HasOne(c => c.Office).WithMany().OnDelete(DeleteBehavior.Restrict);
         });
 

@@ -4,6 +4,9 @@
 # in the Teams debug session; it is valid for about an hour. Do not commit a real token.
 @Token = <paste token here>
 
+# Teams channel id (context.channel.id), URL-encoded.
+@ChannelId = 19%3Aexample%40thread.tacv2
+
 GET {{OfficeBuddy.Api_HostAddress}}/api/offices
 Accept: application/json
 Authorization: Bearer {{Token}}
@@ -13,5 +16,25 @@ Authorization: Bearer {{Token}}
 # Without a token – expect 401
 GET {{OfficeBuddy.Api_HostAddress}}/api/offices
 Accept: application/json
+
+###
+
+GET {{OfficeBuddy.Api_HostAddress}}/api/me
+Accept: application/json
+Authorization: Bearer {{Token}}
+
+###
+
+# 404 until the channel has been mapped
+GET {{OfficeBuddy.Api_HostAddress}}/api/channels/{{ChannelId}}/office
+Accept: application/json
+Authorization: Bearer {{Token}}
+
+###
+
+# Requires the Admin app role – otherwise 403
+PUT {{OfficeBuddy.Api_HostAddress}}/api/channels/{{ChannelId}}/office/1
+Accept: application/json
+Authorization: Bearer {{Token}}
 
 ###
