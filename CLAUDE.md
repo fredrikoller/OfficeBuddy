@@ -59,8 +59,15 @@ dotnet ef database update --project OfficeBuddy.Api
 ```
 
 API code layout: entities and `OfficeBuddyDbContext` in `Data/`; endpoints grouped per area as
-`Map…Endpoints()` extension methods (e.g. `OfficeEndpoints.cs`, `MapGroup("/api/offices")`),
-called from `Program.cs`. Endpoints return DTO records, not entities.
+`Map…Endpoints()` extension methods (e.g. `OfficeEndpoints.cs`, `MapGroup("/offices")`),
+called from `Program.cs` on the `/api` group, which requires a valid SSO token with scope
+`access_as_user` (default authorization policy). Endpoints return DTO records, not entities.
+Config: `AzureAd` (tenant, client id) and `Cors:AllowedOrigins` (the tab origin) – dev values in
+`appsettings.Development.json`.
+
+The tab reaches the API through `tab/src/Tab/api.ts` (SSO token + typed `ApiError` with Swedish
+messages). The base URL is `VITE_API_BASE_URL`, written to `.localConfigs` by
+`m365agents.local.yml` – the API must run with the `https` launch profile when debugging in Teams.
 
 Tab (`tab/`, created with Agents Toolkit – Teams SDK v2 Node server that serves a Vite/React tab):
 open `tab/` as its own VS Code workspace (`code tab`) and press F5 – `.vscode/` and
@@ -119,6 +126,9 @@ Planned:
   Portal (the old `staticTabs` remained as a "Personal app" after switching to `configurableTabs`).
   Delete the old feature in Developer Portal, bump `version`, and remove the app from the team
   before re-adding it.
+- **SSO locally:** `TAB_DOMAIN` must include the port (`localhost:3978`) – otherwise
+  `getAuthToken()` fails with _App resource defined in manifest and iframe origin do not match_
+  (`webApplicationInfo.resource` is compared with the tab's host:port).
 - **Entra:** Expose an API with scope `access_as_user`, pre-authorize the Teams client IDs
   `1fec8e78-bce4-4aaf-ab1b-5451cc387264` and `5e3ce6c0-2b1f-4285-8d4b-75ee78787346`.
 

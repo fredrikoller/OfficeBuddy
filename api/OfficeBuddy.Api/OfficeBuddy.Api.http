@@ -1,5 +1,16 @@
-@OfficeBuddy.Api_HostAddress = http://localhost:5247
+@OfficeBuddy.Api_HostAddress = https://localhost:7139
 
+# Teams SSO token (access_as_user). Copy it from the tab's network requests (Authorization header)
+# in the Teams debug session; it is valid for about an hour. Do not commit a real token.
+@Token = <paste token here>
+
+GET {{OfficeBuddy.Api_HostAddress}}/api/offices
+Accept: application/json
+Authorization: Bearer {{Token}}
+
+###
+
+# Without a token – expect 401
 GET {{OfficeBuddy.Api_HostAddress}}/api/offices
 Accept: application/json
 

@@ -1,51 +1,53 @@
 import React from "react";
-import * as teamsJs from "@microsoft/teams-js";
-import { Button } from "@fluentui/react-components";
+import {
+  MessageBar,
+  MessageBarBody,
+  Spinner,
+  Text,
+} from "@fluentui/react-components";
 
+import { ApiError, getOffices, type Office } from "./api";
 import "./App.css";
 
+// Placeholder main view: lists the offices to prove the tab → API round trip (SSO + CORS).
+// Replaced by the real layout in #18.
 export default function App() {
-  const [content, setContent] = React.useState("");
+  const [offices, setOffices] = React.useState<Office[]>();
+  const [error, setError] = React.useState<string>();
 
   React.useEffect(() => {
-    (async () => {
-      teamsJs.app.initialize().then(() => {
-        teamsJs.app.getContext().then((context: teamsJs.app.Context) => {
-          if (context?.app?.host?.name) {
-            setContent(
-              `Your app is running in ${context.app.host.name} and the current theme is ${context.app.theme}.`,
-            );
-          }
-        });
-      });
-    })();
+    getOffices()
+      .then(setOffices)
+      .catch((e) =>
+        setError(
+          e instanceof ApiError
+            ? e.message
+            : "Något gick fel. Ladda om fliken och försök igen.",
+        ),
+      );
   }, []);
 
   return (
     <div className="App">
-      <h1>👋 Welcome</h1>
-      <Button appearance="primary" className="btn-primary">
-        Hej hej!
-      </Button>
-      {content && (
-        <div className="result">
-          <pre>
-            <code>{content}</code>
-          </pre>
-        </div>
+      <h1>OfficeBuddy</h1>
+      {error && (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
       )}
-
-      <p>
-        For more information, please refer to the{" "}
-        <a
-          href="https://aka.ms/teams-ai-library-v2"
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          Microsoft Teams SDK
-        </a>
-        .
-      </p>
+      {!error && !offices && <Spinner label="Hämtar kontor…" />}
+      {offices && (
+        <ul>
+          {offices.map((office) => (
+            <li key={office.id}>
+              <Text>{office.name}</Text>
+            </li>
+          ))}
+        </ul>
+      )}
+      <MessageBar intent="error">
+        <MessageBarBody>{"Hej hej!"}</MessageBarBody>
+      </MessageBar>
     </div>
   );
 }

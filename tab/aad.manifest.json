@@ -1,0 +1,65 @@
+{
+  "id": "${{AAD_APP_OBJECT_ID}}",
+  "appId": "${{AAD_APP_CLIENT_ID}}",
+  "displayName": "office-buddy-aad${{APP_NAME_SUFFIX}}",
+  "identifierUris": ["api://${{TAB_DOMAIN}}/${{AAD_APP_CLIENT_ID}}"],
+  "signInAudience": "AzureADMyOrg",
+  "api": {
+    "requestedAccessTokenVersion": 2,
+    "oauth2PermissionScopes": [
+      {
+        "adminConsentDescription": "Allows Teams to call the OfficeBuddy API as the signed-in user.",
+        "adminConsentDisplayName": "Access OfficeBuddy as the user",
+        "id": "${{AAD_APP_ACCESS_AS_USER_PERMISSION_ID}}",
+        "isEnabled": true,
+        "type": "User",
+        "userConsentDescription": "Allows Teams to call OfficeBuddy on your behalf.",
+        "userConsentDisplayName": "Access OfficeBuddy as you",
+        "value": "access_as_user"
+      }
+    ],
+    "preAuthorizedApplications": [
+      {
+        "appId": "1fec8e78-bce4-4aaf-ab1b-5451cc387264",
+        "delegatedPermissionIds": ["${{AAD_APP_ACCESS_AS_USER_PERMISSION_ID}}"]
+      },
+      {
+        "appId": "5e3ce6c0-2b1f-4285-8d4b-75ee78787346",
+        "delegatedPermissionIds": ["${{AAD_APP_ACCESS_AS_USER_PERMISSION_ID}}"]
+      }
+    ]
+  },
+  "appRoles": [
+    {
+      "allowedMemberTypes": ["User"],
+      "description": "Can manage offices and channel mappings in OfficeBuddy.",
+      "displayName": "Admin",
+      "id": "428e33bc-6521-4003-b9f2-0bd2fcd76c7d",
+      "isEnabled": true,
+      "value": "Admin"
+    }
+  ],
+  "info": {},
+  "optionalClaims": {
+    "idToken": [],
+    "accessToken": [
+      {
+        "name": "idtyp",
+        "source": null,
+        "essential": false,
+        "additionalProperties": []
+      }
+    ],
+    "saml2Token": []
+  },
+  "publicClient": {
+    "redirectUris": []
+  },
+  "web": {
+    "redirectUris": [],
+    "implicitGrantSettings": {}
+  },
+  "spa": {
+    "redirectUris": []
+  }
+}

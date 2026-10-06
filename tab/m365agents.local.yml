@@ -4,6 +4,20 @@
 version: v1.11
 
 provision:
+  # Creates the Microsoft Entra app used for Teams SSO (and by the API to validate tokens).
+  # The name must match displayName in aad.manifest.json, which aadApp/update applies.
+  - uses: aadApp/create
+    with:
+      name: office-buddy-aad${{APP_NAME_SUFFIX}}
+      generateClientSecret: false
+      signInAudience: AzureADMyOrg
+    writeToEnvironmentFile:
+      clientId: AAD_APP_CLIENT_ID
+      objectId: AAD_APP_OBJECT_ID
+      tenantId: AAD_APP_TENANT_ID
+      authority: AAD_APP_OAUTH_AUTHORITY
+      authorityHost: AAD_APP_OAUTH_AUTHORITY_HOST
+
   # Creates an app
   - uses: teamsApp/create
     with:
@@ -18,8 +32,16 @@ provision:
   - uses: script
     with:
       run:
-        echo "::set-teamsfx-env TAB_DOMAIN=localhost";
+        echo "::set-teamsfx-env TAB_DOMAIN=localhost:3978";
         echo "::set-teamsfx-env TAB_ENDPOINT=https://localhost:3978";
+
+  # Apply aad.manifest.json (scope access_as_user, pre-authorized Teams clients, Admin role).
+  # Runs after TAB_DOMAIN is set since the application ID URI contains it. TAB_DOMAIN must include
+  # the port: Teams requires webApplicationInfo.resource to match the tab's iframe origin (host:port).
+  - uses: aadApp/update
+    with:
+      manifestPath: ./aad.manifest.json
+      outputFilePath: ./build/aad.manifest.${{TEAMSFX_ENV}}.json
 
   # Build app package with latest env value
   - uses: teamsApp/zipAppPackage
@@ -69,3 +91,5 @@ deploy:
         PORT: 3978
         SSL_CRT_FILE: ${{SSL_CRT_FILE}}
         SSL_KEY_FILE: ${{SSL_KEY_FILE}}
+        # Read by Vite at build time (import.meta.env) – the API's https launch profile.
+        VITE_API_BASE_URL: https://localhost:7139

@@ -7,6 +7,20 @@ environmentFolderPath: ./env
 
 # Triggered when 'teamsapp provision' is executed
 provision:
+  # Creates the Microsoft Entra app used for Teams SSO (and by the API to validate tokens).
+  # The name must match displayName in aad.manifest.json, which aadApp/update applies.
+  - uses: aadApp/create
+    with:
+      name: office-buddy-aad${{APP_NAME_SUFFIX}}
+      generateClientSecret: false
+      signInAudience: AzureADMyOrg
+    writeToEnvironmentFile:
+      clientId: AAD_APP_CLIENT_ID
+      objectId: AAD_APP_OBJECT_ID
+      tenantId: AAD_APP_TENANT_ID
+      authority: AAD_APP_OAUTH_AUTHORITY
+      authorityHost: AAD_APP_OAUTH_AUTHORITY_HOST
+
   # Creates an app
   - uses: teamsApp/create
     with:
@@ -40,6 +54,12 @@ provision:
       # Microsoft 365 Agents Toolkit will download this bicep CLI version from github for you,
       # will use bicep CLI in PATH if you remove this config.
       bicepCliVersion: v0.9.1
+
+  # Apply aad.manifest.json. Runs after arm/deploy since the application ID URI contains TAB_DOMAIN.
+  - uses: aadApp/update
+    with:
+      manifestPath: ./aad.manifest.json
+      outputFilePath: ./build/aad.manifest.${{TEAMSFX_ENV}}.json
 
   # Build app package with latest env value
   - uses: teamsApp/zipAppPackage

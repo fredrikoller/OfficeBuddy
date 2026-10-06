@@ -7,9 +7,10 @@ public record OfficeDto(int Id, string Name);
 
 public static class OfficeEndpoints
 {
-    public static IEndpointRouteBuilder MapOfficeEndpoints(this IEndpointRouteBuilder app)
+    // Expects the authorized /api group from Program.cs.
+    public static IEndpointRouteBuilder MapOfficeEndpoints(this IEndpointRouteBuilder api)
     {
-        var offices = app.MapGroup("/api/offices").WithTags("Offices");
+        var offices = api.MapGroup("/offices").WithTags("Offices");
 
         offices.MapGet("/", async (OfficeBuddyDbContext db) =>
             await db.Offices
@@ -18,6 +19,6 @@ public static class OfficeEndpoints
                 .ToListAsync())
             .WithName("GetOffices");
 
-        return app;
+        return api;
     }
 }
