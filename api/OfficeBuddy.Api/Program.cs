@@ -9,6 +9,7 @@ using Microsoft.Identity.Web;
 using OfficeBuddy.Api;
 using OfficeBuddy.Api.Data;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 const string TabCorsPolicy = "Tab";
 
@@ -16,6 +17,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+
+// Enums (e.g. Location) are sent and received as their names, not numbers.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // Validates the Teams SSO token (issuer/tenant, audience, signature) using the AzureAd section.
 builder.Services

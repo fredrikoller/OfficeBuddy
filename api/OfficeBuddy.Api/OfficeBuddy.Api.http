@@ -38,3 +38,33 @@ Accept: application/json
 Authorization: Bearer {{Token}}
 
 ###
+
+# Monday–Friday of the ISO week; location is null for days without an entry
+GET {{OfficeBuddy.Api_HostAddress}}/api/me/week/2026/41
+Accept: application/json
+Authorization: Bearer {{Token}}
+
+###
+
+# A location saves the day, null clears it; days left out are untouched
+PUT {{OfficeBuddy.Api_HostAddress}}/api/me/week
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{Token}}
+
+{
+  "officeId": 1,
+  "days": [
+    { "date": "2026-10-05", "location": "Office" },
+    { "date": "2026-10-06", "location": "Home" },
+    { "date": "2026-10-07", "location": "Customer" },
+    { "date": "2026-10-08", "location": null }
+  ]
+}
+
+###
+
+DELETE {{OfficeBuddy.Api_HostAddress}}/api/me/days/2026-10-05
+Authorization: Bearer {{Token}}
+
+###
