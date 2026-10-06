@@ -45,9 +45,6 @@ export default function App() {
           ))}
         </ul>
       )}
-      <MessageBar intent="error">
-        <MessageBarBody>{"Hej hej!"}</MessageBarBody>
-      </MessageBar>
     </div>
   );
 }
