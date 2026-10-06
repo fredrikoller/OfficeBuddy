@@ -1,4 +1,5 @@
 import React from "react";
+import * as teamsJs from "@microsoft/teams-js";
 import {
   MessageBar,
   MessageBarBody,
@@ -6,25 +7,29 @@ import {
   Text,
 } from "@fluentui/react-components";
 
-import { ApiError, getOffices, type Office } from "./api";
+import { ApiError, getChannelOffice, type Office } from "./api";
 import "./App.css";
 
-// Placeholder main view: lists the offices to prove the tab → API round trip (SSO + CORS).
+// Placeholder main view: shows the office the channel is mapped to (set on the config page).
 // Replaced by the real layout in #18.
 export default function App() {
-  const [offices, setOffices] = React.useState<Office[]>();
+  // undefined = loading, null = the channel has no office yet.
+  const [office, setOffice] = React.useState<Office | null>();
   const [error, setError] = React.useState<string>();
 
   React.useEffect(() => {
-    getOffices()
-      .then(setOffices)
-      .catch((e) =>
-        setError(
-          e instanceof ApiError
-            ? e.message
-            : "Något gick fel. Ladda om fliken och försök igen.",
-        ),
-      );
+    (async () => {
+      await teamsJs.app.initialize();
+      const context = await teamsJs.app.getContext();
+      const channelId = context.channel?.id;
+      setOffice(channelId ? await getChannelOffice(channelId) : null);
+    })().catch((e) =>
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : "Något gick fel. Ladda om fliken och försök igen.",
+      ),
+    );
   }, []);
 
   return (
@@ -35,15 +40,15 @@ export default function App() {
           <MessageBarBody>{error}</MessageBarBody>
         </MessageBar>
       )}
-      {!error && !offices && <Spinner label="Hämtar kontor…" />}
-      {offices && (
-        <ul>
-          {offices.map((office) => (
-            <li key={office.id}>
-              <Text>{office.name}</Text>
-            </li>
-          ))}
-        </ul>
+      {!error && office === undefined && <Spinner label="Hämtar kontor…" />}
+      {office && <Text>Kontor: {office.name}</Text>}
+      {office === null && (
+        <MessageBar intent="warning">
+          <MessageBarBody>
+            Kanalen har inget kontor än. Be en administratör välja kontor under
+            flikens inställningar.
+          </MessageBarBody>
+        </MessageBar>
       )}
     </div>
   );

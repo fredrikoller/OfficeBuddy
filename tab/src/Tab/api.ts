@@ -104,4 +104,27 @@ export interface Office {
   name: string;
 }
 
+export interface Me {
+  displayName: string | null;
+  isAdmin: boolean;
+}
+
 export const getOffices = () => api.get<Office[]>("/offices");
+
+export const getMe = () => api.get<Me>("/me");
+
+const channelPath = (channelId: string) =>
+  `/channels/${encodeURIComponent(channelId)}/office`;
+
+// Resolves to null when the channel has not been mapped to an office yet.
+export const getChannelOffice = (channelId: string) =>
+  api.get<Office>(channelPath(channelId)).catch((error) => {
+    if (error instanceof ApiError && error.kind === "notFound") {
+      return null;
+    }
+    throw error;
+  });
+
+// Admin only.
+export const setChannelOffice = (channelId: string, officeId: number) =>
+  api.put<Office>(`${channelPath(channelId)}/${officeId}`);

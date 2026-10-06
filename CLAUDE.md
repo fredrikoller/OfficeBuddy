@@ -99,7 +99,8 @@ Planned:
 - `GET /channels/{channelId}/office`, `PUT /channels/{channelId}/office/{officeId}` (Admin)
 - `GET /me/week/{year}/{week}` (ISO weeks), `PUT /me/week`
 - `GET /offices/{id}/presence?date=` (omitted = today)
-- `GET /me` (name, home office, isAdmin – so the UI can hide admin features)
+- `GET /me` (name, home office, isAdmin – so the UI can hide admin features; home office is not
+  returned yet, it comes with step 6)
 - `DELETE /me/days/{date}`
 - `GET /offices/{id}/presence/week/{year}/{week}` (week matrix)
 - `GET /offices/{id}/missing/{year}/{week}` (data for the reminder bot)
@@ -129,6 +130,11 @@ Planned:
 - **SSO locally:** `TAB_DOMAIN` must include the port (`localhost:3978`) – otherwise
   `getAuthToken()` fails with _App resource defined in manifest and iframe origin do not match_
   (`webApplicationInfo.resource` is compared with the tab's host:port).
+- **Admin role assignment:** the `Admin` app role is assigned per user in Entra (App registrations →
+  `office-buddy-aad<suffix>` → "Managed application in local directory" → Users and groups; the
+  Enterprise applications list hides it behind its default "Application type" filter). Teams caches the SSO token, so a
+  new assignment can take up to an hour (or a sign-out) before `roles` shows up in the token.
+  Without the role nobody can map a channel to an office (`PUT /channels/…` → 403).
 - **Entra:** Expose an API with scope `access_as_user`, pre-authorize the Teams client IDs
   `1fec8e78-bce4-4aaf-ab1b-5451cc387264` and `5e3ce6c0-2b1f-4285-8d4b-75ee78787346`.
 
