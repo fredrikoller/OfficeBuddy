@@ -45,7 +45,9 @@ dotnet watch --project OfficeBuddy.Api                        # hot reload
 
 In Development the OpenAPI document is at `/openapi/v1.json` (no Swagger UI). Manual requests
 live in `api/OfficeBuddy.Api/OfficeBuddy.Api.http` – keep it in sync with the endpoints.
-No tests exist yet.
+The API has no tests yet. The tab has Vitest unit tests for pure logic (`*.test.ts` next to the
+code, e.g. `dates.test.ts`): run `npm test` from `tab/`, and `npx tsc -p tsconfig.app.json --noEmit`
+to type-check (Vite does not).
 
 Database (dev): local SQL Server default instance, database `OfficeBuddy`, Windows auth
 (connection string `OfficeBuddy` in `appsettings.Development.json`). In Development the app runs
@@ -97,7 +99,9 @@ Planned:
 
 - `GET /offices`, `POST /offices` (Admin)
 - `GET /channels/{channelId}/office`, `PUT /channels/{channelId}/office/{officeId}` (Admin)
-- `GET /me/week/{year}/{week}` (ISO weeks), `PUT /me/week`
+- `GET /me/week/{year}/{week}` (ISO weeks, always Monday–Friday), `PUT /me/week` (body
+  `{ officeId, days: [{ date, location }] }`; `location: null` clears the day, days left out are
+  untouched; the first save creates the `Person` with that office as home office)
 - `GET /offices/{id}/presence?date=` (omitted = today)
 - `GET /me` (name, home office, isAdmin – so the UI can hide admin features; home office is not
   returned yet, it comes with step 6)
@@ -161,9 +165,9 @@ Planned:
 1. ✅ Repo + `.gitignore` + README
 2. ✅ Scaffold the tab with Agents Toolkit, get the untouched template running with F5 in Teams
 3. ✅ API skeleton: models, DbContext, `GET /offices` without auth – verify with curl
-4. Add SSO validation, connect the tab to the API
-5. Config page + channel→office mapping
-6. My week (read/save)
+4. ✅ Add SSO validation, connect the tab to the API
+5. ✅ Config page + channel→office mapping
+6. ✅ My week (read/save)
 7. Today + arbitrary date
 8. Admin role and admin endpoints
 9. CI/CD to Azure
