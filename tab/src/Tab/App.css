@@ -31,6 +31,16 @@ h1 {
   max-width: calc(100% - 4rem);
 }
 
+/* Single centered column for the main view. */
+.App > .content {
+  display: flex;
+  flex-direction: column;
+  row-gap: 1rem;
+  width: 100%;
+  max-width: min(720px, calc(100% - 2rem));
+  padding-bottom: 2rem;
+}
+
 .actions {
   display: flex;
   flex-direction: row;

@@ -10,6 +10,7 @@
     ],
     "dependencies": {
         "@fluentui/react-components": "^9.74.9",
+        "@fluentui/react-icons": "^2.0.343",
         "@microsoft/teams-js": "^2.0.0",
         "@microsoft/teams.api": "^2.0.0",
         "@microsoft/teams.apps": "^2.0.0",
@@ -33,13 +34,15 @@
         "rimraf": "^6.0.1",
         "tsup": "^8.4.0",
         "typescript": "^5.4.5",
-        "vite": "^6.2.0"
+        "vite": "^6.2.0",
+        "vitest": "^3.2.7"
     },
     "scripts": {
         "dev:teamsfx": "env-cmd --silent -f .localConfigs npm run dev",
         "clean": "rimraf ./dist",
         "dev": "npm run build:frontend && nodemon",
         "build": "tsup && npm run build:frontend",
-        "build:frontend": "vite build --outDir dist/client"
+        "build:frontend": "vite build --outDir dist/client",
+        "test": "vitest run"
     }
 }

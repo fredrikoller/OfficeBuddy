@@ -106,7 +106,23 @@ export interface Office {
 
 export interface Me {
   displayName: string | null;
+  homeOffice: Office | null;
   isAdmin: boolean;
+}
+
+export type Location = "Office" | "Home" | "Customer";
+
+// location is null for a day without an entry (and, when saving, to clear the day).
+export interface Day {
+  date: string;
+  location: Location | null;
+}
+
+// days are always Monday–Friday of the ISO week.
+export interface Week {
+  year: number;
+  week: number;
+  days: Day[];
 }
 
 export const getOffices = () => api.get<Office[]>("/offices");
@@ -128,3 +144,10 @@ export const getChannelOffice = (channelId: string) =>
 // Admin only.
 export const setChannelOffice = (channelId: string, officeId: number) =>
   api.put<Office>(`${channelPath(channelId)}/${officeId}`);
+
+export const getMyWeek = (year: number, week: number) =>
+  api.get<Week>(`/me/week/${year}/${week}`);
+
+// officeId is the office the user fills in from (the channel's office).
+export const saveMyWeek = (officeId: number, days: Day[]) =>
+  api.put<Week>("/me/week", { officeId, days });

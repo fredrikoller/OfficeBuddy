@@ -8,10 +8,11 @@ import {
 } from "@fluentui/react-components";
 
 import { ApiError, getChannelOffice, type Office } from "./api";
+import MyWeek from "./MyWeek";
 import "./App.css";
 
-// Placeholder main view: shows the office the channel is mapped to (set on the config page).
-// Replaced by the real layout in #18.
+// Main view: the channel's office (set on the config page) and the user's own week.
+// The TabList layout with "Idag" comes in #18.
 export default function App() {
   // undefined = loading, null = the channel has no office yet.
   const [office, setOffice] = React.useState<Office | null>();
@@ -41,7 +42,12 @@ export default function App() {
         </MessageBar>
       )}
       {!error && office === undefined && <Spinner label="Hämtar kontor…" />}
-      {office && <Text>Kontor: {office.name}</Text>}
+      {office && (
+        <div className="content">
+          <Text>Kontor: {office.name}</Text>
+          <MyWeek officeId={office.id} />
+        </div>
+      )}
       {office === null && (
         <MessageBar intent="warning">
           <MessageBarBody>
