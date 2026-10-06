@@ -23,6 +23,11 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+# Visual Studio (local cache and user settings)
+.vs/
+*.suo
+*.user
+
 # .NET Core
 project.lock.json
 project.fragment.lock.json
