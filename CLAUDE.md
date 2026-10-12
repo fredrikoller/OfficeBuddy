@@ -51,7 +51,9 @@ to type-check (Vite does not).
 
 Database (dev): local SQL Server default instance, database `OfficeBuddy`, Windows auth
 (connection string `OfficeBuddy` in `appsettings.Development.json`). In Development the app runs
-`Database.Migrate()` at startup, then `UseSeeding` adds the office "Trollhättan".
+`Database.Migrate()` at startup, then `UseSeeding` adds the office "Trollhättan" and
+`Data/DevSeed.cs` adds fictitious colleagues with entries from last week to three weeks ahead
+(idempotent, dev only; their `Oid`s start with `00000000-0000-0000-0000-`).
 Migrations live in `Data/Migrations`; `dotnet-ef` is a local tool (`api/dotnet-tools.json`):
 
 ```bash
@@ -102,13 +104,16 @@ Planned:
 - `GET /me/week/{year}/{week}` (ISO weeks, always Monday–Friday), `PUT /me/week` (body
   `{ officeId, days: [{ date, location }] }`; `location: null` clears the day, days left out are
   untouched; the first save creates the `Person` with that office as home office)
-- `GET /offices/{id}/presence?date=` (omitted = today)
+- `GET /offices/{id}/presence?date=` (omitted = today; returns display names grouped as
+  `office`/`home`/`customer` plus the caller's own `myLocation`)
 - `GET /me` (name, home office, isAdmin – so the UI can hide admin features; home office is not
   returned yet, it comes with step 6)
 - `DELETE /me/days/{date}`
 - `GET /offices/{id}/presence/week/{year}/{week}` (week matrix)
 - `GET /offices/{id}/missing/{year}/{week}` (data for the reminder bot)
-- `PUT`/`DELETE /offices/{id}` (Admin)
+- `PUT`/`DELETE /offices/{id}` (Admin) – `POST`/`PUT` take `{ name }` and return 409 when the
+  name is taken; `DELETE` returns 409 when the office is mapped to a channel or has workplace
+  entries, and clears it as home office for people who had it
 
 ### Pitfalls already encountered
 
@@ -168,7 +173,7 @@ Planned:
 4. ✅ Add SSO validation, connect the tab to the API
 5. ✅ Config page + channel→office mapping
 6. ✅ My week (read/save)
-7. Today + arbitrary date
+7. ✅ Today + arbitrary date
 8. Admin role and admin endpoints
 9. CI/CD to Azure
 10. Reminder bot

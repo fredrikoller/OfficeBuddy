@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Identity.Web;
 using OfficeBuddy.Api;
 using OfficeBuddy.Api.Data;
+using System;
 using System.Linq;
 using System.Text.Json.Serialization;
 
@@ -17,6 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.AddSingleton(TimeProvider.System);
 
 // Enums (e.g. Location) are sent and received as their names, not numbers.
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -67,7 +69,11 @@ if (app.Environment.IsDevelopment())
 
     // Apply pending migrations (and run UseSeeding) on startup in dev only.
     using var scope = app.Services.CreateScope();
-    scope.ServiceProvider.GetRequiredService<OfficeBuddyDbContext>().Database.Migrate();
+    var db = scope.ServiceProvider.GetRequiredService<OfficeBuddyDbContext>();
+    db.Database.Migrate();
+
+    // Fictitious colleagues around today's date, so the views have data to show.
+    DevSeed.Run(db, DateOnly.FromDateTime(DateTime.Now));
 }
 
 app.UseHttpsRedirection();

@@ -13,7 +13,7 @@ public class OfficeBuddyDbContext(DbContextOptions<OfficeBuddyDbContext> options
     {
         modelBuilder.Entity<Office>(e =>
         {
-            e.Property(o => o.Name).HasMaxLength(100);
+            e.Property(o => o.Name).HasMaxLength(Office.NameMaxLength);
             e.HasIndex(o => o.Name).IsUnique();
         });
 

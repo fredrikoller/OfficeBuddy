@@ -39,6 +39,46 @@ Authorization: Bearer {{Token}}
 
 ###
 
+# Admin: create an office – 409 if the name is taken
+POST {{OfficeBuddy.Api_HostAddress}}/api/offices
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{Token}}
+
+{ "name": "Göteborg" }
+
+###
+
+# Admin: rename an office
+PUT {{OfficeBuddy.Api_HostAddress}}/api/offices/2
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{Token}}
+
+{ "name": "Göteborg City" }
+
+###
+
+# Admin: delete an office – 409 if it is mapped to a channel or has workplace entries
+DELETE {{OfficeBuddy.Api_HostAddress}}/api/offices/2
+Authorization: Bearer {{Token}}
+
+###
+
+# Who is where at the office today (Europe/Stockholm)
+GET {{OfficeBuddy.Api_HostAddress}}/api/offices/1/presence
+Accept: application/json
+Authorization: Bearer {{Token}}
+
+###
+
+# ...or on a given date
+GET {{OfficeBuddy.Api_HostAddress}}/api/offices/1/presence?date=2026-10-07
+Accept: application/json
+Authorization: Bearer {{Token}}
+
+###
+
 # Monday–Friday of the ISO week; location is null for days without an entry
 GET {{OfficeBuddy.Api_HostAddress}}/api/me/week/2026/41
 Accept: application/json
