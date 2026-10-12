@@ -5,7 +5,9 @@ import {
   formatDay,
   formatWeek,
   isoWeekOf,
+  isWeekend,
   mondayOf,
+  stepWeekday,
   todayInStockholm,
   weekdaysOf,
 } from "./dates";
@@ -42,6 +44,20 @@ describe("mondayOf / weekdaysOf", () => {
 
   it("handles week 53", () => {
     expect(mondayOf({ year: 2026, week: 53 })).toBe("2026-12-28");
+  });
+});
+
+describe("stepWeekday", () => {
+  it("skips the weekend in both directions", () => {
+    expect(stepWeekday("2026-10-02", 1)).toBe("2026-10-05"); // Friday → Monday
+    expect(stepWeekday("2026-10-05", -1)).toBe("2026-10-02"); // Monday → Friday
+    expect(stepWeekday("2026-10-06", 1)).toBe("2026-10-07");
+  });
+
+  it("leaves a weekend to the nearest weekday", () => {
+    expect(isWeekend("2026-10-03")).toBe(true);
+    expect(stepWeekday("2026-10-03", 1)).toBe("2026-10-05");
+    expect(stepWeekday("2026-10-04", -1)).toBe("2026-10-02");
   });
 });
 

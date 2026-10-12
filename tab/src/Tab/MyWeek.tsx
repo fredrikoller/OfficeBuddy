@@ -68,10 +68,12 @@ const toMessage = (error: unknown) =>
 interface MyWeekProps {
   // The channel's office – the office the user fills in from.
   officeId: number;
+  // Bump to reload the week after it was changed elsewhere (the quick pick in the "Idag" view).
+  refreshKey?: number;
 }
 
 // Monday–Friday form for the signed-in user's own week.
-export default function MyWeek({ officeId }: MyWeekProps) {
+export default function MyWeek({ officeId, refreshKey }: MyWeekProps) {
   const styles = useStyles();
   const toasterId = useId("my-week-toaster");
   const { dispatchToast } = useToastController(toasterId);
@@ -106,6 +108,37 @@ export default function MyWeek({ officeId }: MyWeekProps) {
       cancelled = true;
     };
   }, [week]);
+
+  // The week was changed elsewhere: take the server's values, but keep days edited here.
+  useEffect(() => {
+    if (refreshKey === undefined || saved === undefined) {
+      return;
+    }
+    let cancelled = false;
+    getMyWeek(week.year, week.week)
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+        const server = Object.fromEntries(
+          result.days.map((d) => [d.date, d.location]),
+        );
+        setDraft((current) =>
+          Object.fromEntries(
+            Object.keys(server).map((date) => [
+              date,
+              current[date] !== saved[date] ? current[date] : server[date],
+            ]),
+          ),
+        );
+        setSaved(server);
+      })
+      .catch((e) => !cancelled && setError(toMessage(e)));
+    return () => {
+      cancelled = true;
+    };
+    // Only refreshKey should trigger this; week changes are handled by the effect above.
+  }, [refreshKey]);
 
   const changeWeek = (next: IsoWeek) =>
     dirty ? setPendingWeek(next) : setWeek(next);

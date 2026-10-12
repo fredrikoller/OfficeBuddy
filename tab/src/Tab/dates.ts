@@ -45,6 +45,20 @@ export function addDays(date: string, days: number): string {
   return toIso(new Date(toUtc(date).getTime() + days * DAY_MS));
 }
 
+export function isWeekend(date: string): boolean {
+  const day = toUtc(date).getUTCDay();
+  return day === 0 || day === 6;
+}
+
+// Steps one weekday forward (1) or back (-1), skipping Saturday and Sunday.
+export function stepWeekday(date: string, direction: 1 | -1): string {
+  let next = addDays(date, direction);
+  while (isWeekend(next)) {
+    next = addDays(next, direction);
+  }
+  return next;
+}
+
 // Monday–Friday of the week.
 export function weekdaysOf(week: IsoWeek): string[] {
   const monday = mondayOf(week);

@@ -7,6 +7,8 @@ export type ApiErrorKind =
   | "auth"
   | "forbidden"
   | "notFound"
+  | "conflict"
+  | "invalid"
   | "server"
   | "network"
   | "config";
@@ -17,6 +19,9 @@ const messages: Record<ApiErrorKind, string> = {
   forbidden:
     "Du har inte behörighet att göra det här. Kontakta en administratör om du behöver åtkomst.",
   notFound: "Det du letade efter finns inte längre. Ladda om fliken.",
+  // Generic fallbacks – views that know the context show a more specific message.
+  conflict: "Ändringen krockar med något som redan finns. Ladda om fliken och försök igen.",
+  invalid: "Uppgifterna gick inte att spara. Kontrollera dem och försök igen.",
   server: "Något gick fel på servern. Försök igen om en stund.",
   network:
     "Det gick inte att nå servern. Kontrollera din anslutning och försök igen.",
@@ -45,6 +50,12 @@ const kindFromStatus = (status: number): ApiErrorKind => {
 
   if (status === 404) {
     return "notFound";
+  }
+  if (status === 409) {
+    return "conflict";
+  }
+  if (status === 400) {
+    return "invalid";
   }
 
   return "server";
@@ -127,6 +138,17 @@ export interface Week {
 
 export const getOffices = () => api.get<Office[]>("/offices");
 
+// Admin only. Rejects with kind "conflict" when the name is taken.
+export const createOffice = (name: string) =>
+  api.post<Office>("/offices", { name });
+
+// Admin only. Rejects with kind "conflict" when the name is taken.
+export const renameOffice = (id: number, name: string) =>
+  api.put<Office>(`/offices/${id}`, { name });
+
+// Admin only. Rejects with kind "conflict" when the office is in use.
+export const deleteOffice = (id: number) => api.delete(`/offices/${id}`);
+
 export const getMe = () => api.get<Me>("/me");
 
 const channelPath = (channelId: string) =>
@@ -145,7 +167,20 @@ export const getChannelOffice = (channelId: string) =>
 export const setChannelOffice = (channelId: string, officeId: number) =>
   api.put<Office>(`${channelPath(channelId)}/${officeId}`);
 
-export const getMyWeek = (year: number, week: number) =>
+// Who has registered what at an office on a date: display names, sorted by name.
+// myLocation is the signed-in user's own entry for the date.
+export interface Presence {
+  date: string;
+  myLocation: Location | null;
+  office: string[];
+  home: string[];
+  customer: string[];
+}
+
+export const getPresence = (officeId: number, date: string) =>
+  api.get<Presence>(`/offices/${officeId}/presence?date=${date}`);
+
+export const getMyWeek =(year: number, week: number) =>
   api.get<Week>(`/me/week/${year}/${week}`);
 
 // officeId is the office the user fills in from (the channel's office).
