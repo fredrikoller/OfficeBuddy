@@ -25,6 +25,10 @@ and see who is in the office. Starts with Trollhättan, must support multiple of
   validated with Microsoft.Identity.Web. Users are identified by the `oid` claim.
 - **Admin = Entra app role `Admin`**, not Teams channel owner.
 - **Monorepo:** `api/`, `tab/`, later `bot/`. Separate GitHub Actions workflows with path filters.
+- **Hosting:** App Service for both the tab (Node) and the API (.NET) on one Linux plan, plus
+  Azure SQL (serverless, free offer). Defined in `tab/infra/azure.bicep`, deployed by the
+  Agents Toolkit `provision` step. SKU `F1` (free) for test – switch `webAppSku` to `B1` for
+  production. The API's managed identity is the SQL server's Entra admin (no database password).
 
 ### Stack
 
@@ -151,7 +155,6 @@ Planned:
 
 - Should "Home"/"Customer" be shown under the person's home office or under the office they filled
   in from? (Currently: the office they filled in from.)
-- Hosting: Azure Static Web Apps (tab) + App Service or Container Apps (API)?
 - Repo in Consid's GitHub organization – check with the org admin.
 - Consid tenant – check with Consid IT before step 9: may we create app registrations, who grants
   admin consent for `access_as_user`, is sideloading allowed or must a Teams admin publish to the

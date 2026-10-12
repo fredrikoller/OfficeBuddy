@@ -3,10 +3,16 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
       "resourceBaseName": {
-        "value": "tab${{RESOURCE_SUFFIX}}"
+        "value": "officebuddy${{RESOURCE_SUFFIX}}"
       },
       "webAppSku": {
-        "value": "B1"
+        "value": "F1"
+      },
+      "aadClientId": {
+        "value": "${{AAD_APP_CLIENT_ID}}"
+      },
+      "aadTenantId": {
+        "value": "${{AAD_APP_TENANT_ID}}"
       }
     }
   }

@@ -43,6 +43,7 @@
         "dev": "npm run build:frontend && nodemon",
         "build": "tsup && npm run build:frontend",
         "build:frontend": "vite build --outDir dist/client",
-        "test": "vitest run"
+        "test": "vitest run",
+        "typecheck": "tsc -p tsconfig.app.json --noEmit"
     }
 }
