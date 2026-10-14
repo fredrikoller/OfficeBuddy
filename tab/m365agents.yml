@@ -89,6 +89,14 @@ deploy:
     with:
       args: install
 
+  # Vite reads this file at build time (import.meta.env), so the tab calls the API in Azure.
+  # Variables already set in the process (local debugging uses .localConfigs) take precedence.
+  - uses: file/createOrUpdateEnvironmentFile
+    with:
+      target: ./.env.production.local
+      envs:
+        VITE_API_BASE_URL: ${{API_ENDPOINT}}
+
   - uses: cli/runNpmCommand
     name: build app
     with:
@@ -107,6 +115,19 @@ deploy:
       # You can replace it with your existing Azure Resource id
       # or add it to your environment variable file.
       resourceId: ${{AZURE_APP_SERVICE_RESOURCE_ID}}
+
+  # The API: publish and zip deploy to its own App Service app.
+  - uses: cli/runDotnetCommand
+    name: publish api
+    with:
+      workingDirectory: ../api/OfficeBuddy.Api
+      args: publish --configuration Release --output bin/publish
+
+  - uses: azureAppService/zipDeploy
+    with:
+      workingDirectory: ../api/OfficeBuddy.Api
+      artifactFolder: bin/publish
+      resourceId: ${{API_APP_SERVICE_RESOURCE_ID}}
 
 publish:
 

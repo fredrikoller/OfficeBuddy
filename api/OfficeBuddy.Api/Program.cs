@@ -46,7 +46,8 @@ builder.Services.AddCors(options => options.AddPolicy(TabCorsPolicy, policy => p
     .WithMethods("GET", "POST", "PUT", "DELETE")));
 
 builder.Services.AddDbContext<OfficeBuddyDbContext>(options => options
-    .UseSqlServer(builder.Configuration.GetConnectionString("OfficeBuddy"))
+    // Retries transient failures, e.g. while the serverless Azure SQL database resumes from pause.
+    .UseSqlServer(builder.Configuration.GetConnectionString("OfficeBuddy"), sql => sql.EnableRetryOnFailure())
     .UseSeeding((context, _) =>
     {
         var db = (OfficeBuddyDbContext)context;
@@ -66,14 +67,21 @@ app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
 
-    // Apply pending migrations (and run UseSeeding) on startup in dev only.
-    using var scope = app.Services.CreateScope();
+// Apply pending migrations (and run UseSeeding) on startup. The API runs as a single instance, and
+// in Azure its managed identity is the SQL server's administrator, so no separate migration step
+// is needed.
+using (var scope = app.Services.CreateScope())
+{
     var db = scope.ServiceProvider.GetRequiredService<OfficeBuddyDbContext>();
     db.Database.Migrate();
 
-    // Fictitious colleagues around today's date, so the views have data to show.
-    DevSeed.Run(db, DateOnly.FromDateTime(DateTime.Now));
+    if (app.Environment.IsDevelopment())
+    {
+        // Fictitious colleagues around today's date, so the views have data to show.
+        DevSeed.Run(db, DateOnly.FromDateTime(DateTime.Now));
+    }
 }
 
 app.UseHttpsRedirection();

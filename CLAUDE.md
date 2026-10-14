@@ -29,6 +29,9 @@ and see who is in the office. Starts with Trollhättan, must support multiple of
   Azure SQL (serverless, free offer). Defined in `tab/infra/azure.bicep`, deployed by the
   Agents Toolkit `provision` step. SKU `F1` (free) for test – switch `webAppSku` to `B1` for
   production. The API's managed identity is the SQL server's Entra admin (no database password).
+  The `deploy` step in `tab/m365agents.yml` builds and zip-deploys both: it writes `API_ENDPOINT`
+  as `VITE_API_BASE_URL` to `tab/.env.production.local` before the tab build, then publishes the
+  API from `api/OfficeBuddy.Api`. Not yet run against Azure.
 
 ### Stack
 
@@ -54,10 +57,11 @@ code, e.g. `dates.test.ts`): run `npm test` from `tab/`, and `npx tsc -p tsconfi
 to type-check (Vite does not).
 
 Database (dev): local SQL Server default instance, database `OfficeBuddy`, Windows auth
-(connection string `OfficeBuddy` in `appsettings.Development.json`). In Development the app runs
-`Database.Migrate()` at startup, then `UseSeeding` adds the office "Trollhättan" and
+(connection string `OfficeBuddy` in `appsettings.Development.json`). The app runs
+`Database.Migrate()` at startup in every environment (single instance; in Azure the API's managed
+identity is SQL admin), and `UseSeeding` adds the office "Trollhättan". In Development only,
 `Data/DevSeed.cs` adds fictitious colleagues with entries from last week to three weeks ahead
-(idempotent, dev only; their `Oid`s start with `00000000-0000-0000-0000-`).
+(idempotent; their `Oid`s start with `00000000-0000-0000-0000-`).
 Migrations live in `Data/Migrations`; `dotnet-ef` is a local tool (`api/dotnet-tools.json`):
 
 ```bash
