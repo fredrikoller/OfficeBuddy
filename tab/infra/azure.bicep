@@ -12,9 +12,23 @@ param aadClientId string
 @description('Tenant the API accepts tokens from (AAD_APP_TENANT_ID).')
 param aadTenantId string
 
+// TBD: the bot needs its own Entra app registration (separate from the tab's SSO app), created
+// by a provision step not yet written – see m365agents.yml. These three are its output.
+@description('Client id of the bots own Entra app (BOT_ID in the Teams manifest, CLIENT_ID for the bot process).')
+param botClientId string
+
+@secure()
+@description('Client secret for the bots Entra app (CLIENT_SECRET for the bot process).')
+param botClientSecret string
+
+@secure()
+@description('Shared secret the API and bot use to authenticate their server-to-server calls.')
+param botInternalApiKey string
+
 param serverfarmsName string = resourceBaseName
 param tabAppName string = '${resourceBaseName}-tab'
 param apiAppName string = '${resourceBaseName}-api'
+param botAppName string = '${resourceBaseName}-bot'
 param sqlServerName string = toLower('${resourceBaseName}-sql')
 param sqlDatabaseName string = 'OfficeBuddy'
 param location string = resourceGroup().location
@@ -108,8 +122,93 @@ resource apiApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'ConnectionStrings__OfficeBuddy'
           value: 'Server=tcp:${sqlServerName}${environment().suffixes.sqlServerHostname},1433;Database=${sqlDatabaseName};Authentication=Active Directory Default;Encrypt=True;'
         }
+        {
+          name: 'Bot__BaseUrl'
+          value: 'https://${botApp.properties.defaultHostName}'
+        }
+        {
+          name: 'Bot__InternalApiKey'
+          value: botInternalApiKey
+        }
       ]
     }
+  }
+}
+
+// The reminder bot: posts channel messages when an admin sends a reminder (see bot/src/index.ts).
+// Its API_BASE_URL is the default azurewebsites.net hostname, spelled out rather than referencing
+// apiApp.properties.defaultHostName, to avoid a circular dependency (apiApp already depends on
+// this resource for Bot__BaseUrl above).
+resource botApp 'Microsoft.Web/sites@2022-09-01' = {
+  kind: 'app,linux'
+  location: location
+  name: botAppName
+  properties: {
+    serverFarmId: serverfarm.id
+    httpsOnly: true
+    siteConfig: {
+      linuxFxVersion: 'NODE|22-lts'
+      appCommandLine: 'node dist/index.js'
+      alwaysOn: alwaysOn
+      ftpsState: 'FtpsOnly'
+      minTlsVersion: '1.2'
+      appSettings: [
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: 'false'
+        }
+        {
+          name: 'CLIENT_ID'
+          value: botClientId
+        }
+        {
+          name: 'CLIENT_SECRET'
+          value: botClientSecret
+        }
+        {
+          name: 'TENANT_ID'
+          value: aadTenantId
+        }
+        {
+          // Hardcoded public-cloud App Service suffix (not derived from apiApp.properties, to
+          // avoid a circular dependency). TBD: wrong if ever deployed to a sovereign cloud.
+          name: 'API_BASE_URL'
+          value: 'https://${apiAppName}.azurewebsites.net'
+        }
+        {
+          name: 'INTERNAL_API_KEY'
+          value: botInternalApiKey
+        }
+      ]
+    }
+  }
+}
+
+// TBD: resource type/API version and property shape not verified against a live schema from this
+// environment – check https://learn.microsoft.com/azure/templates/microsoft.botservice/botservices
+// before provisioning.
+resource botService 'Microsoft.BotService/botServices@2022-09-15' = {
+  name: botAppName
+  location: 'global'
+  kind: 'azurebot'
+  sku: {
+    name: 'F0'
+  }
+  properties: {
+    displayName: botAppName
+    endpoint: 'https://${botApp.properties.defaultHostName}/api/messages'
+    msaAppId: botClientId
+    msaAppType: 'SingleTenant'
+    msaAppTenantId: aadTenantId
+  }
+}
+
+resource botTeamsChannel 'Microsoft.BotService/botServices/channels@2022-09-15' = {
+  parent: botService
+  name: 'MsTeamsChannel'
+  location: 'global'
+  properties: {
+    channelName: 'MsTeamsChannel'
   }
 }
 
@@ -166,3 +265,6 @@ output TAB_ENDPOINT string = 'https://${tabApp.properties.defaultHostName}'
 output API_APP_SERVICE_RESOURCE_ID string = apiApp.id
 output API_DOMAIN string = apiApp.properties.defaultHostName
 output API_ENDPOINT string = 'https://${apiApp.properties.defaultHostName}'
+output BOT_APP_SERVICE_RESOURCE_ID string = botApp.id
+output BOT_DOMAIN string = botApp.properties.defaultHostName
+output BOT_ENDPOINT string = 'https://${botApp.properties.defaultHostName}'

@@ -13,6 +13,15 @@
       },
       "aadTenantId": {
         "value": "${{AAD_APP_TENANT_ID}}"
+      },
+      "botClientId": {
+        "value": "${{BOT_ID}}"
+      },
+      "botClientSecret": {
+        "value": "${{SECRET_BOT_PASSWORD}}"
+      },
+      "botInternalApiKey": {
+        "value": "${{SECRET_BOT_INTERNAL_API_KEY}}"
       }
     }
   }
