@@ -66,9 +66,10 @@ nunit-*.xml
 *.db-shm
 *.db-wal
 
-# Node / tab
+# Node / tab / bot
 node_modules/
 .env*.local
+dist/
 
 # Microsoft 365 Agents Toolkit (local secrets and generated config)
 env/.env.*.user

@@ -17,6 +17,10 @@ and see who is in the office. Starts with Trollhättan, must support multiple of
 
 ### Architecture decisions (already made – only challenge with good reason)
 
+- **CQRS, no MediatR.** Fredrik wants commands/queries + handlers in the API. MediatR went
+  commercial-licensed (paid support beyond a free tier) since v13 (2025) – not worth it for a
+  company, or for ~15 endpoints. `Cqrs/` is a ~15-line hand-rolled dispatcher instead, same
+  `Send()` ergonomics. Rolled out one area at a time, starting with Offices – see API code layout.
 - **Tab app, not a pure bot.** Forms and lists suit an embedded web view. A bot comes later,
   for reminders only.
 - **One app, multiple offices.** Not one bot/app per office. The app is installed as a
@@ -24,19 +28,23 @@ and see who is in the office. Starts with Trollhättan, must support multiple of
 - **Auth:** Teams SSO (`authentication.getAuthToken()` in teams-js) → bearer token to the API,
   validated with Microsoft.Identity.Web. Users are identified by the `oid` claim.
 - **Admin = Entra app role `Admin`**, not Teams channel owner.
-- **Monorepo:** `api/`, `tab/`, later `bot/`. Separate GitHub Actions workflows with path filters.
+- **Monorepo:** `api/`, `tab/`, `bot/`. Separate GitHub Actions workflows with path filters.
 - **Hosting:** App Service for both the tab (Node) and the API (.NET) on one Linux plan, plus
   Azure SQL (serverless, free offer). Defined in `tab/infra/azure.bicep`, deployed by the
   Agents Toolkit `provision` step. SKU `F1` (free) for test – switch `webAppSku` to `B1` for
   production. The API's managed identity is the SQL server's Entra admin (no database password).
   The `deploy` step in `tab/m365agents.yml` builds and zip-deploys both: it writes `API_ENDPOINT`
   as `VITE_API_BASE_URL` to `tab/.env.production.local` before the tab build, then publishes the
-  API from `api/OfficeBuddy.Api`. Not yet run against Azure.
+  API from `api/OfficeBuddy.Api`, then the bot from `bot/`. Not yet run against Azure. The bot
+  needs its own Entra app + Azure Bot resource, provisioned by `botAadApp/create` – action name
+  and shape not verified from this environment, marked `# TBD` in `m365agents.yml`/`azure.bicep`.
 
 ### Stack
 
 - API: ASP.NET Core minimal API, .NET 10, EF Core with SQL Server (local SQL Server in dev, Azure SQL in prod)
 - Tab: React + TypeScript, Fluent UI v9 (`@fluentui/react-components`), `@microsoft/teams-js`
+- Bot: Node/TypeScript, `@microsoft/teams.apps` v2 (same SDK family the tab's server already
+  uses) – posts channel reminders, no UI of its own
 - Tooling: Microsoft 365 Agents Toolkit (VS Code) for manifest, Entra app, debugging
 
 ### Commands
@@ -56,8 +64,17 @@ The API has no tests yet. The tab has Vitest unit tests for pure logic (`*.test.
 code, e.g. `dates.test.ts`): run `npm test` from `tab/`, and `npx tsc -p tsconfig.app.json --noEmit`
 to type-check (Vite does not).
 
-Database (dev): local SQL Server default instance, database `OfficeBuddy`, Windows auth
-(connection string `OfficeBuddy` in `appsettings.Development.json`). The app runs
+Bot (run from `bot/`, same `@microsoft/teams.apps`/`teams.api`/`teams.common` v2 packages as the
+tab's server): `npm install`, `npm run dev` (nodemon, rebuilds on change) or `npm run build &&
+npm start`. Reads `.env` (gitignored; not committed – see `PORT`/`SKIP_AUTH`/`API_BASE_URL`/
+`INTERNAL_API_KEY` in `bot/src/index.ts`). Locally it runs with no real Entra app
+(`SKIP_AUTH=true`/`dangerouslyAllowUnauthenticatedRequests`), so Teams activities aren't signature-
+validated – fine for curling `/api/messages` and `/internal/messages` by hand, not for real Teams
+traffic. `npm run typecheck` (`tsc --noEmit`); no tests yet.
+
+Database (dev): SQL Server running in Docker (`docker-compose up -d` at the repo root – SA auth,
+password in `docker-compose.yml` and in the `OfficeBuddy` connection string in
+`appsettings.Development.json`, both dev-only). The app runs
 `Database.Migrate()` at startup in every environment (single instance; in Azure the API's managed
 identity is SQL admin), and `UseSeeding` adds the office "Trollhättan". In Development only,
 `Data/DevSeed.cs` adds fictitious colleagues with entries from last week to three weeks ahead
@@ -70,12 +87,27 @@ dotnet ef migrations add <Name> --project OfficeBuddy.Api --output-dir Data/Migr
 dotnet ef database update --project OfficeBuddy.Api
 ```
 
-API code layout: entities and `OfficeBuddyDbContext` in `Data/`; endpoints grouped per area as
-`Map…Endpoints()` extension methods (e.g. `OfficeEndpoints.cs`, `MapGroup("/offices")`),
-called from `Program.cs` on the `/api` group, which requires a valid SSO token with scope
-`access_as_user` (default authorization policy). Endpoints return DTO records, not entities.
-Config: `AzureAd` (tenant, client id) and `Cors:AllowedOrigins` (the tab origin) – dev values in
-`appsettings.Development.json`.
+API code layout: entities in `Data/Entities/`, the `Location` enum in `Data/Enums/`, `OfficeBuddyDbContext`
+in `Data/`. Two styles coexist while CQRS is rolled out area by area:
+- **Offices (migrated – the reference for future areas):** `Features/Offices/`, one file per
+  command/query (e.g. `CreateOffice.cs` holds `CreateOfficeCommand`, its outcome record, and its
+  handler). `OfficeEndpoints.cs` there is a thin HTTP layer only: routes, auth, and a `switch` from
+  the handler's outcome to `TypedResults.*` – no business logic, no EF calls. Handlers are
+  HTTP-agnostic: a query with exactly one failure case returns a nullable DTO, anything with 2+
+  distinct failure reasons gets a closed outcome record (`abstract record Foo { private Foo(){}
+  sealed record Success(...); sealed record ReasonA; ... }`) – endpoints `switch` on it with no
+  `_` catch-all, so a forgotten case shows up as a CS8509 warning. Handlers are called through
+  `Cqrs/IDispatcher` (`Cqrs/Dispatcher.cs`, a ~15-line hand-rolled `Send()`, not MediatR – deliberate,
+  see Architecture decisions), registered one line per operation in `OfficeHandlerRegistration.cs`
+  (no assembly scanning). `Program.cs` resolves every registered handler once at startup (next to
+  the migration call) so a missing registration is a boot-time crash, not a 500 later.
+- **Channel/Me/Bot (not yet migrated):** `Endpoints/{Channel,Me,Bot}Endpoints.cs`, the older flat
+  style – routes, validation and EF calls inline in one `Map…Endpoints()` extension method per
+  area, called from `Program.cs` on the `/api` group (requires a valid SSO token with scope
+  `access_as_user`, the default authorization policy).
+
+Endpoints return DTO records, not entities, in both styles. Config: `AzureAd` (tenant, client id)
+and `Cors:AllowedOrigins` (the tab origin) – dev values in `appsettings.Development.json`.
 
 The tab reaches the API through `tab/src/Tab/api.ts` (SSO token + typed `ApiError` with Swedish
 messages). The base URL is `VITE_API_BASE_URL`, written to `.localConfigs` by
@@ -84,7 +116,7 @@ messages). The base URL is `VITE_API_BASE_URL`, written to `.localConfigs` by
 Tab (`tab/`, created with Agents Toolkit – Teams SDK v2 Node server that serves a Vite/React tab):
 open `tab/` as its own VS Code workspace (`code tab`) and press F5 – `.vscode/` and
 `m365agents.yml` must be at the workspace root. The Edge launch configs use a persistent debug
-profile (`userDataDir` = `%LOCALAPPDATA%/edge-teams-debug`); sign in once with the dev tenant
+profile (`userDataDir` = `${userHome}/.edge-teams-debug`, works on Windows and macOS – `%LOCALAPPDATA%` is Windows-only and expands to empty on macOS); sign in once with the dev tenant
 account, and make sure the Agents Toolkit extension is signed in to the same account
 (`${account-hint}`).
 
@@ -102,6 +134,10 @@ test data cannot be reused in Consid.
 - `Person` (Oid PK, DisplayName, HomeOfficeId?)
 - `WorkplaceEntry` (Id, PersonOid, Date, Location: Office|Home|Customer, OfficeId)
   – unique index on (PersonOid, Date): one row per person per day
+- `BotInstallation` (TenantId PK, ServiceUrl, UpdatedAt) – no FK to anything (deliberately, so it
+  can't collide with the Office/Person delete-behavior setup below). Upserted by the bot every
+  time it is added to a team; the app is single-tenant, so at most one row exists. Lets the API
+  reach the Bot Connector service for proactive channel messages – see `send-reminder` below.
 
 ### API (all under /api, requires SSO token)
 
@@ -118,10 +154,28 @@ Planned:
   returned yet, it comes with step 6)
 - `DELETE /me/days/{date}`
 - `GET /offices/{id}/presence/week/{year}/{week}` (week matrix)
-- `GET /offices/{id}/missing/{year}/{week}` (data for the reminder bot)
+- `GET /offices/{id}/missing/{year}/{week}` (Admin) – people whose home office is this one and
+  which weekdays of that ISO week they have no `WorkplaceEntry` for at all (any office counts –
+  entries are tagged by the office filled in from, not necessarily the home office)
+- `POST /offices/{id}/send-reminder` (Admin; optional `?year=&week=`, default current week) –
+  posts the same missing-days summary as a plain-text message to every channel mapped to the
+  office, via the bot. 404 if the bot has not been added to any team yet (no `BotInstallation`
+  row); 409 if the office has no mapped channel, or the bot could not be reached for any of them
 - `PUT`/`DELETE /offices/{id}` (Admin) – `POST`/`PUT` take `{ name }` and return 409 when the
   name is taken; `DELETE` returns 409 when the office is mapped to a channel or has workplace
   entries, and clears it as home office for people who had it
+
+### Internal API (`/internal`, not under `/api` – no SSO token involved)
+
+Server-to-server calls between the API and the bot process, guarded by a shared secret header
+(`X-Internal-Api-Key`, config `Bot:InternalApiKey` / bot env `INTERNAL_API_KEY` – must match) via
+`InternalAuth.cs`'s endpoint filter, not Microsoft.Identity.Web:
+
+- `PUT /internal/bot-installation` (called by the bot, on every "added to team" event) – body
+  `{ tenantId, serviceUrl }`, upserts the single `BotInstallation` row
+
+The reverse direction (API → bot) is the bot's own `POST /internal/messages` (not part of this
+API) – body `{ serviceUrl, tenantId, channelId, text }`, see `bot/src/index.ts`.
 
 ### Pitfalls already encountered
 
@@ -137,7 +191,18 @@ Planned:
 - **Global `dotnet-ef`** may be an older version – use the local tool (`dotnet ef` from `api/`).
 - **Time zone:** use `Europe/Stockholm` explicitly for "today" – Azure runs on UTC.
 - **Secrets:** Agents Toolkit creates `env/.env.*.user` and `.localConfigs` – must not be committed.
-  Also ignore `*.db`, `bin/`, `obj/`, `node_modules/`, `.env*.local`.
+  Also ignore `*.db`, `bin/`, `obj/`, `node_modules/`, `.env*.local`, `dist/`, and the bot's own
+  `.env` (`CLIENT_SECRET`/`INTERNAL_API_KEY`).
+- **`@microsoft/teams.apps` breaking change inside `^2.0.0`:** `app.tokenManager`/`getBotToken()`
+  went from public (2.0.x) to private between minor versions (2.1.0 made it private, with a
+  comment pointing at the real supported surface). Use the documented public API instead –
+  `app.tokenProvider.getAppToken()` for an app-only token, `app.send`/`app.reply` for activities
+  to a conversation that already exists – and re-check `node_modules/@microsoft/teams.apps/dist/
+  app.d.ts` after any version bump rather than trusting what worked before.
+- **Teams app manifest, `bots[]`:** populating it for the first time is the same category of
+  change as switching `staticTabs` → `configurableTabs` above – `teamsApp/update` will not
+  retrofit it onto an already-installed instance of the app. Remove and re-add the app from any
+  team it is already in before expecting the bot to receive an `install.add` event there.
 - **Manifest:** `configurableTabs` (scope `team`, context `channelTab`) instead of `staticTabs`;
   `webApplicationInfo` is required for SSO; add the API domain under `validDomains`.
 - **Changing tab type in the manifest:** `teamsApp/update` does not remove features in Developer
@@ -181,6 +246,10 @@ Planned:
 5. ✅ Config page + channel→office mapping
 6. ✅ My week (read/save)
 7. ✅ Today + arbitrary date
-8. Admin role and admin endpoints
-9. CI/CD to Azure
-10. Reminder bot
+8. ✅ Admin role and admin endpoints
+9. CI build workflows (`.github/workflows/{api,tab,bot}.yml`) ✅ done; actual deploy to Azure
+   not yet run – `m365agents.yml`'s `deploy` step and `tab/infra/azure.bicep` are written but
+   untested against a real subscription (Fredrik runs `provision`/`deploy` himself)
+10. Reminder bot: channel message, manually triggered by an admin button – API, bot and tab code
+    written and verified locally (steps above); not yet wired into real Teams (needs step 9's
+    Azure/Entra provisioning first, plus removing/re-adding the app from any team already using it)
