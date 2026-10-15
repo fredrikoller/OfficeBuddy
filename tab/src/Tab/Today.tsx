@@ -6,6 +6,7 @@ import {
   Subtitle2,
   Text,
   makeStyles,
+  mergeClasses,
   tokens,
 } from "@fluentui/react-components";
 
@@ -20,19 +21,38 @@ import {
 import { formatDay, isWeekend, todayInStockholm } from "./dates";
 import DateNavigator from "./DateNavigator";
 import LocationPicker from "./LocationPicker";
+import { locationColor } from "./locationColors";
 import PersonList, { PersonGroups } from "./PersonList";
+import PresenceSummary from "./PresenceSummary";
+import { useSurfaceStyles } from "./surfaceStyles";
+import { useMe } from "./useMe";
 
 const useStyles = makeStyles({
   root: {
     display: "flex",
     flexDirection: "column",
-    rowGap: tokens.spacingVerticalL,
+    rowGap: tokens.spacingVerticalXL,
     width: "100%",
+  },
+  statusCard: {
+    display: "flex",
+    flexDirection: "column",
+    rowGap: tokens.spacingVerticalM,
+    padding: tokens.spacingHorizontalXL,
   },
   section: {
     display: "flex",
     flexDirection: "column",
-    rowGap: tokens.spacingVerticalS,
+    rowGap: tokens.spacingVerticalM,
+  },
+  heading: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "baseline",
+    columnGap: tokens.spacingHorizontalS,
+  },
+  muted: {
+    color: tokens.colorNeutralForeground2,
   },
 });
 
@@ -51,6 +71,8 @@ interface TodayProps {
 // Who is where on a date (today by default), with a quick pick for the user's own location.
 export default function Today({ office, onSaved }: TodayProps) {
   const styles = useStyles();
+  const surface = useSurfaceStyles();
+  const me = useMe();
   const [date, setDate] = useState(todayInStockholm);
   // undefined while the date is loading.
   const [presence, setPresence] = useState<Presence>();
@@ -99,6 +121,7 @@ export default function Today({ office, onSaved }: TodayProps) {
   const total = presence
     ? presence.office.length + presence.home.length + presence.customer.length
     : 0;
+  const currentUser = me?.displayName;
 
   return (
     <div className={styles.root}>
@@ -112,7 +135,7 @@ export default function Today({ office, onSaved }: TodayProps) {
       {!error && !presence && <Spinner label="Hämtar dagen…" />}
 
       {presence && !weekend && (
-        <div className={styles.section}>
+        <div className={mergeClasses(surface.card, styles.statusCard)}>
           <Subtitle2 as="h2">{question}</Subtitle2>
           <LocationPicker
             label={question}
@@ -123,12 +146,17 @@ export default function Today({ office, onSaved }: TodayProps) {
         </div>
       )}
 
+      {presence && total > 0 && <PresenceSummary presence={presence} />}
+
       {presence && (
         <div className={styles.section}>
-          <Subtitle2 as="h2">
-            På kontoret i {office.name} – {presence.office.length}{" "}
-            {presence.office.length === 1 ? "person" : "personer"}
-          </Subtitle2>
+          <div className={styles.heading}>
+            <Subtitle2 as="h2">På kontoret i {office.name}</Subtitle2>
+            <Text className={styles.muted}>
+              {presence.office.length}{" "}
+              {presence.office.length === 1 ? "person" : "personer"}
+            </Text>
+          </div>
           {total === 0 ? (
             <Text>
               {weekend
@@ -137,11 +165,20 @@ export default function Today({ office, onSaved }: TodayProps) {
             </Text>
           ) : (
             <>
-              <PersonList people={presence.office} />
+              <PersonList people={presence.office} currentUser={currentUser} />
               <PersonGroups
+                currentUser={currentUser}
                 groups={[
-                  { title: "Hemma", people: presence.home },
-                  { title: "Hos kund", people: presence.customer },
+                  {
+                    title: "Hemma",
+                    people: presence.home,
+                    color: locationColor.Home,
+                  },
+                  {
+                    title: "Hos kund",
+                    people: presence.customer,
+                    color: locationColor.Customer,
+                  },
                 ]}
               />
             </>

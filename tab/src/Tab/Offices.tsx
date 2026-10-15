@@ -14,6 +14,7 @@ import {
   Spinner,
   Text,
   makeStyles,
+  mergeClasses,
   tokens,
 } from "@fluentui/react-components";
 import { DeleteRegular, EditRegular, SendRegular } from "@fluentui/react-icons";
@@ -27,6 +28,7 @@ import {
   sendReminder,
   type Office,
 } from "./api";
+import { useSurfaceStyles } from "./surfaceStyles";
 
 const NAME_MAX_LENGTH = 100;
 
@@ -41,6 +43,9 @@ const useStyles = makeStyles({
     listStyleType: "none",
     margin: 0,
     padding: 0,
+    display: "flex",
+    flexDirection: "column",
+    rowGap: tokens.spacingVerticalS,
   },
   office: {
     display: "flex",
@@ -48,9 +53,7 @@ const useStyles = makeStyles({
     alignItems: "center",
     justifyContent: "space-between",
     gap: tokens.spacingHorizontalM,
-    paddingTop: tokens.spacingVerticalS,
-    paddingBottom: tokens.spacingVerticalS,
-    borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
+    padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
   },
   actions: {
     display: "flex",
@@ -61,6 +64,7 @@ const useStyles = makeStyles({
     flexWrap: "wrap",
     alignItems: "end",
     gap: tokens.spacingHorizontalM,
+    padding: tokens.spacingHorizontalXL,
   },
   addField: {
     flexGrow: 1,
@@ -91,6 +95,7 @@ interface OfficesProps {
 // Admin page: create, rename and delete offices.
 export default function Offices({ onChanged }: OfficesProps) {
   const styles = useStyles();
+  const surface = useSurfaceStyles();
   const [offices, setOffices] = useState<Office[]>();
   const [newName, setNewName] = useState("");
   const [dialog, setDialog] = useState<OpenDialog>();
@@ -199,7 +204,10 @@ export default function Offices({ onChanged }: OfficesProps) {
       {offices && (
         <ul className={styles.list}>
           {offices.map((office) => (
-            <li key={office.id} className={styles.office}>
+            <li
+              key={office.id}
+              className={mergeClasses(surface.card, styles.office)}
+            >
               <Text>{office.name}</Text>
               <div className={styles.actions}>
                 <Button
@@ -240,7 +248,7 @@ export default function Offices({ onChanged }: OfficesProps) {
 
       {offices && (
         <form
-          className={styles.add}
+          className={mergeClasses(surface.card, styles.add)}
           onSubmit={(event) => {
             event.preventDefault();
             add();

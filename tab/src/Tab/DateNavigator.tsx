@@ -30,6 +30,7 @@ export default function DateNavigator({ date, onChange }: DateNavigatorProps) {
     <div className={styles.root}>
       <Button
         appearance="subtle"
+        size="large"
         icon={<ChevronLeftRegular />}
         aria-label="Föregående dag"
         onClick={() => onChange(stepWeekday(date, -1))}
@@ -39,11 +40,16 @@ export default function DateNavigator({ date, onChange }: DateNavigatorProps) {
       </Text>
       <Button
         appearance="subtle"
+        size="large"
         icon={<ChevronRightRegular />}
         aria-label="Nästa dag"
         onClick={() => onChange(stepWeekday(date, 1))}
       />
-      <Button disabled={date === today} onClick={() => onChange(today)}>
+      <Button
+        size="large"
+        disabled={date === today}
+        onClick={() => onChange(today)}
+      >
         Idag
       </Button>
     </div>

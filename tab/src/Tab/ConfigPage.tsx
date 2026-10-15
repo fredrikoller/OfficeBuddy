@@ -17,6 +17,7 @@ import {
   setChannelOffice,
   type Office,
 } from "./api";
+import AppHeader from "./AppHeader";
 import "./App.css";
 
 const toMessage = (error: unknown) =>
@@ -50,7 +51,11 @@ export default function ConfigPage() {
         const { channelId, selectedOfficeId, mappedOfficeId } =
           saveState.current;
         try {
-          if (channelId && selectedOfficeId && selectedOfficeId !== mappedOfficeId) {
+          if (
+            channelId &&
+            selectedOfficeId &&
+            selectedOfficeId !== mappedOfficeId
+          ) {
             await setChannelOffice(channelId, selectedOfficeId);
           }
           const contentUrl = `${window.location.origin}/tabs/home/`;
@@ -103,43 +108,47 @@ export default function ConfigPage() {
 
   return (
     <div className="App">
-      <h1>OfficeBuddy</h1>
-      {error && (
-        <MessageBar intent="error">
-          <MessageBarBody>{error}</MessageBarBody>
-        </MessageBar>
-      )}
-      {!error && !offices && <Spinner label="Hämtar kontor…" />}
-      {offices && !isAdmin && (
-        <MessageBar intent="info">
-          <MessageBarBody>
-            {mappedOfficeId !== undefined
-              ? "Bara administratörer kan byta kontor för kanalen. Klicka på Spara för att lägga till fliken."
-              : "Kanalen har inget kontor än och bara administratörer kan välja ett. Be en administratör lägga till fliken."}
-          </MessageBarBody>
-        </MessageBar>
-      )}
-      {offices && (
-        <Field label="Kontor" hint="Kontoret som den här kanalen tillhör.">
-          <Dropdown
-            placeholder="Välj kontor"
-            disabled={!isAdmin}
-            value={selectedOffice?.name ?? ""}
-            selectedOptions={selectedOffice ? [String(selectedOffice.id)] : []}
-            onOptionSelect={(_, data) =>
-              setSelectedOfficeId(
-                data.optionValue ? Number(data.optionValue) : undefined,
-              )
-            }
-          >
-            {offices.map((office) => (
-              <Option key={office.id} value={String(office.id)}>
-                {office.name}
-              </Option>
-            ))}
-          </Dropdown>
-        </Field>
-      )}
+      <div className="content">
+        <AppHeader />
+        {error && (
+          <MessageBar intent="error">
+            <MessageBarBody>{error}</MessageBarBody>
+          </MessageBar>
+        )}
+        {!error && !offices && <Spinner label="Hämtar kontor…" />}
+        {offices && !isAdmin && (
+          <MessageBar intent="info">
+            <MessageBarBody>
+              {mappedOfficeId !== undefined
+                ? "Bara administratörer kan byta kontor för kanalen. Klicka på Spara för att lägga till fliken."
+                : "Kanalen har inget kontor än och bara administratörer kan välja ett. Be en administratör lägga till fliken."}
+            </MessageBarBody>
+          </MessageBar>
+        )}
+        {offices && (
+          <Field label="Kontor" hint="Kontoret som den här kanalen tillhör.">
+            <Dropdown
+              placeholder="Välj kontor"
+              disabled={!isAdmin}
+              value={selectedOffice?.name ?? ""}
+              selectedOptions={
+                selectedOffice ? [String(selectedOffice.id)] : []
+              }
+              onOptionSelect={(_, data) =>
+                setSelectedOfficeId(
+                  data.optionValue ? Number(data.optionValue) : undefined,
+                )
+              }
+            >
+              {offices.map((office) => (
+                <Option key={office.id} value={String(office.id)}>
+                  {office.name}
+                </Option>
+              ))}
+            </Dropdown>
+          </Field>
+        )}
+      </div>
     </div>
   );
 }

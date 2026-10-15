@@ -6,10 +6,10 @@ import {
   Spinner,
   Tab,
   TabList,
-  Text,
 } from "@fluentui/react-components";
 
 import { ApiError, getChannelOffice, type Office } from "./api";
+import AppHeader from "./AppHeader";
 import MyWeek from "./MyWeek";
 import Offices from "./Offices";
 import Today from "./Today";
@@ -72,54 +72,55 @@ export default function App() {
 
   return (
     <div className="App">
-      <h1>OfficeBuddy</h1>
-      {error && (
-        <MessageBar intent="error">
-          <MessageBarBody>{error}</MessageBarBody>
-        </MessageBar>
-      )}
-      {!error && office === undefined && <Spinner label="Hämtar kontor…" />}
-      {office && (
-        <div className="content">
-          <Text>Kontor: {office.name}</Text>
-          <TabList
-            selectedValue={view}
-            onTabSelect={(_, data) => {
-              const next = data.value as View;
-              setView(next);
-              storeView(next);
-            }}
-          >
-            <Tab value="today">Idag</Tab>
-            <Tab value="week">Min vecka</Tab>
-            {/* Hidden for non-admins; the API enforces the role either way. */}
-            {me?.isAdmin && <Tab value="offices">Kontor</Tab>}
-          </TabList>
-          {/* "Idag" is remounted when selected, so it always shows fresh data. */}
-          {view === "today" && (
-            <Today
-              office={office}
-              onSaved={() => setWeekRefreshKey((key) => key + 1)}
-            />
-          )}
-          {/* "Min vecka" stays mounted so unsaved changes survive switching tabs. */}
-          <div style={{ display: view === "week" ? undefined : "none" }}>
-            <MyWeek officeId={office.id} refreshKey={weekRefreshKey} />
-          </div>
-          {/* Renaming the channel's own office should show in the header, so reload it. */}
-          {view === "offices" && me?.isAdmin && (
-            <Offices onChanged={loadOffice} />
-          )}
-        </div>
-      )}
-      {office === null && (
-        <MessageBar intent="warning">
-          <MessageBarBody>
-            Kanalen har inget kontor än. Be en administratör välja kontor under
-            flikens inställningar.
-          </MessageBarBody>
-        </MessageBar>
-      )}
+      <div className="content">
+        <AppHeader officeName={office?.name} />
+        {error && (
+          <MessageBar intent="error">
+            <MessageBarBody>{error}</MessageBarBody>
+          </MessageBar>
+        )}
+        {!error && office === undefined && <Spinner label="Hämtar kontor…" />}
+        {office && (
+          <>
+            <TabList
+              selectedValue={view}
+              onTabSelect={(_, data) => {
+                const next = data.value as View;
+                setView(next);
+                storeView(next);
+              }}
+            >
+              <Tab value="today">Idag</Tab>
+              <Tab value="week">Min vecka</Tab>
+              {/* Hidden for non-admins; the API enforces the role either way. */}
+              {me?.isAdmin && <Tab value="offices">Kontor</Tab>}
+            </TabList>
+            {/* "Idag" is remounted when selected, so it always shows fresh data. */}
+            {view === "today" && (
+              <Today
+                office={office}
+                onSaved={() => setWeekRefreshKey((key) => key + 1)}
+              />
+            )}
+            {/* "Min vecka" stays mounted so unsaved changes survive switching tabs. */}
+            <div style={{ display: view === "week" ? undefined : "none" }}>
+              <MyWeek officeId={office.id} refreshKey={weekRefreshKey} />
+            </div>
+            {/* Renaming the channel's own office should show in the header, so reload it. */}
+            {view === "offices" && me?.isAdmin && (
+              <Offices onChanged={loadOffice} />
+            )}
+          </>
+        )}
+        {office === null && (
+          <MessageBar intent="warning">
+            <MessageBarBody>
+              Kanalen har inget kontor än. Be en administratör välja kontor
+              under flikens inställningar.
+            </MessageBarBody>
+          </MessageBar>
+        )}
+      </div>
     </div>
   );
 }

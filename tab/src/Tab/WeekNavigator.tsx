@@ -38,6 +38,7 @@ export default function WeekNavigator({ week, onChange, disabled }: WeekNavigato
     <div className={styles.root}>
       <Button
         appearance="subtle"
+        size="large"
         icon={<ChevronLeftRegular />}
         aria-label="Föregående vecka"
         disabled={disabled}
@@ -48,12 +49,14 @@ export default function WeekNavigator({ week, onChange, disabled }: WeekNavigato
       </Text>
       <Button
         appearance="subtle"
+        size="large"
         icon={<ChevronRightRegular />}
         aria-label="Nästa vecka"
         disabled={disabled}
         onClick={() => onChange(addWeeks(week, 1))}
       />
       <Button
+        size="large"
         disabled={disabled || isSameWeek(week, currentWeek)}
         onClick={() => onChange(currentWeek)}
       >

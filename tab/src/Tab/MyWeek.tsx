@@ -15,6 +15,7 @@ import {
   ToastTitle,
   Toaster,
   makeStyles,
+  mergeClasses,
   tokens,
   useId,
   useToastController,
@@ -29,14 +30,20 @@ import {
   type IsoWeek,
 } from "./dates";
 import LocationPicker from "./LocationPicker";
+import { useSurfaceStyles } from "./surfaceStyles";
 import WeekNavigator from "./WeekNavigator";
 
 const useStyles = makeStyles({
   root: {
     display: "flex",
     flexDirection: "column",
-    rowGap: tokens.spacingVerticalL,
+    rowGap: tokens.spacingVerticalXL,
     width: "100%",
+  },
+  days: {
+    display: "flex",
+    flexDirection: "column",
+    rowGap: tokens.spacingVerticalS,
   },
   day: {
     display: "flex",
@@ -44,11 +51,16 @@ const useStyles = makeStyles({
     alignItems: "center",
     justifyContent: "space-between",
     gap: tokens.spacingHorizontalM,
-    paddingBottom: tokens.spacingVerticalM,
-    borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
+    padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
   },
   dayLabel: {
     minWidth: "11rem",
+  },
+  picker: {
+    // Three equal buttons that share the row with the label and shrink on a phone.
+    flexGrow: 1,
+    flexBasis: "18rem",
+    maxWidth: "28rem",
   },
   footer: {
     display: "flex",
@@ -75,6 +87,7 @@ interface MyWeekProps {
 // Monday–Friday form for the signed-in user's own week.
 export default function MyWeek({ officeId, refreshKey }: MyWeekProps) {
   const styles = useStyles();
+  const surface = useSurfaceStyles();
   const toasterId = useId("my-week-toaster");
   const { dispatchToast } = useToastController(toasterId);
 
@@ -177,24 +190,38 @@ export default function MyWeek({ officeId, refreshKey }: MyWeekProps) {
       )}
       {!error && !saved && <Spinner label="Hämtar veckan…" />}
 
-      {saved &&
-        dates.map((date) => (
-          <div key={date} className={styles.day}>
-            <Text className={styles.dayLabel}>{formatDay(date)}</Text>
-            <LocationPicker
-              label={formatDay(date)}
-              value={draft[date] ?? null}
-              disabled={saving}
-              onChange={(location) =>
-                setDraft((current) => ({ ...current, [date]: location }))
-              }
-            />
-          </div>
-        ))}
+      {saved && (
+        <div className={styles.days}>
+          {dates.map((date) => (
+            <div
+              key={date}
+              className={mergeClasses(surface.card, styles.day)}
+            >
+              <Text weight="semibold" className={styles.dayLabel}>
+                {formatDay(date)}
+              </Text>
+              <LocationPicker
+                className={styles.picker}
+                label={formatDay(date)}
+                value={draft[date] ?? null}
+                disabled={saving}
+                onChange={(location) =>
+                  setDraft((current) => ({ ...current, [date]: location }))
+                }
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {saved && (
         <div className={styles.footer}>
-          <Button appearance="primary" disabled={!dirty || saving} onClick={save}>
+          <Button
+            appearance="primary"
+            size="large"
+            disabled={!dirty || saving}
+            onClick={save}
+          >
             {saving ? "Sparar…" : `Spara vecka ${week.week}`}
           </Button>
           {dirty && !saving && <Text italic>Du har osparade ändringar.</Text>}
