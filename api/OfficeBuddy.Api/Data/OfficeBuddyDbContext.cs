@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OfficeBuddy.Api.Data.Entities;
 
 namespace OfficeBuddy.Api.Data;
 
@@ -8,6 +9,7 @@ public class OfficeBuddyDbContext(DbContextOptions<OfficeBuddyDbContext> options
     public DbSet<ChannelOffice> ChannelOffices => Set<ChannelOffice>();
     public DbSet<Person> People => Set<Person>();
     public DbSet<WorkplaceEntry> WorkplaceEntries => Set<WorkplaceEntry>();
+    public DbSet<BotInstallation> BotInstallations => Set<BotInstallation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +41,13 @@ public class OfficeBuddyDbContext(DbContextOptions<OfficeBuddyDbContext> options
             // An office with history must not be deleted by accident; deleting a person removes their entries.
             e.HasOne(w => w.Office).WithMany().OnDelete(DeleteBehavior.Restrict);
             e.HasOne(w => w.Person).WithMany().OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BotInstallation>(e =>
+        {
+            e.HasKey(b => b.TenantId);
+            e.Property(b => b.TenantId).HasMaxLength(BotInstallation.TenantIdMaxLength);
+            e.Property(b => b.ServiceUrl).HasMaxLength(BotInstallation.ServiceUrlMaxLength);
         });
     }
 }

@@ -1,4 +1,5 @@
-using Microsoft.EntityFrameworkCore;
+using OfficeBuddy.Api.Data.Entities;
+using OfficeBuddy.Api.Data.Enums;
 using System;
 using System.Linq;
 

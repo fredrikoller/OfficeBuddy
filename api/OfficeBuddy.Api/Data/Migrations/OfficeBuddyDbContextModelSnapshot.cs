@@ -22,6 +22,25 @@ namespace OfficeBuddy.Api.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("OfficeBuddy.Api.Data.BotInstallation", b =>
+                {
+                    b.Property<string>("TenantId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ServiceUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("TenantId");
+
+                    b.ToTable("BotInstallations");
+                });
+
             modelBuilder.Entity("OfficeBuddy.Api.Data.ChannelOffice", b =>
                 {
                     b.Property<string>("ChannelId")
