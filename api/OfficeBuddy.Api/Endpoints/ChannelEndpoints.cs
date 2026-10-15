@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using OfficeBuddy.Api.Data;
+using OfficeBuddy.Api.Data.Entities;
+using OfficeBuddy.Api.Features.Offices;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace OfficeBuddy.Api;
+namespace OfficeBuddy.Api.Endpoints;
 
 public static class ChannelEndpoints
 {

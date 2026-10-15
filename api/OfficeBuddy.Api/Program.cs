@@ -7,7 +7,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Identity.Web;
 using OfficeBuddy.Api;
+using OfficeBuddy.Api.Cqrs;
 using OfficeBuddy.Api.Data;
+using OfficeBuddy.Api.Data.Entities;
+using OfficeBuddy.Api.Endpoints;
+using OfficeBuddy.Api.Features.Offices;
 using System;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -15,6 +19,10 @@ using System.Text.Json.Serialization;
 const string TabCorsPolicy = "Tab";
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Catches a handler accidentally registered AddSingleton instead of AddScoped/AddTransient –
+// such a handler would capture a DbContext forever. Unconditional, not just in Development.
+builder.Host.UseDefaultServiceProvider(o => o.ValidateScopes = true);
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
@@ -44,6 +52,17 @@ builder.Services.AddCors(options => options.AddPolicy(TabCorsPolicy, policy => p
     .WithOrigins(allowedOrigins)
     .WithHeaders("Authorization", "Content-Type")
     .WithMethods("GET", "POST", "PUT", "DELETE")));
+
+// Calls the bot process to post channel reminders (see BotEndpoints.cs for the reverse direction).
+builder.Services.AddHttpClient("Bot", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Bot:BaseUrl"]!);
+    client.DefaultRequestHeaders.Add("X-Internal-Api-Key", builder.Configuration["Bot:InternalApiKey"]);
+});
+
+// Hand-rolled CQRS dispatcher – AddScoped, never Singleton, see Cqrs/Dispatcher.cs.
+builder.Services.AddScoped<IDispatcher, Dispatcher>();
+builder.Services.AddOfficeHandlers();
 
 builder.Services.AddDbContext<OfficeBuddyDbContext>(options => options
     // Retries transient failures, e.g. while the serverless Azure SQL database resumes from pause.
@@ -82,6 +101,19 @@ using (var scope = app.Services.CreateScope())
         // Fictitious colleagues around today's date, so the views have data to show.
         DevSeed.Run(db, DateOnly.FromDateTime(DateTime.Now));
     }
+
+    // Fails fast at startup if a command/query has no registered handler, instead of a 500 the
+    // first time someone hits that route.
+    var requestKinds = typeof(Program).Assembly.GetTypes()
+        .Where(t => !t.IsAbstract && !t.IsInterface)
+        .SelectMany(t => t.GetInterfaces()
+            .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>))
+            .Select(i => (RequestType: t, ResultType: i.GetGenericArguments()[0])));
+
+    foreach (var (requestType, resultType) in requestKinds)
+    {
+        scope.ServiceProvider.GetRequiredService(typeof(IRequestHandler<,>).MakeGenericType(requestType, resultType));
+    }
 }
 
 app.UseHttpsRedirection();
@@ -95,5 +127,8 @@ var api = app.MapGroup("/api").RequireAuthorization();
 api.MapOfficeEndpoints();
 api.MapChannelEndpoints();
 api.MapMeEndpoints();
+
+// Server-to-server calls from the bot process – no Teams SSO token, guarded by a shared secret.
+app.MapBotEndpoints();
 
 app.Run();

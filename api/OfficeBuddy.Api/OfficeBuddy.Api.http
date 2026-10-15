@@ -108,3 +108,28 @@ DELETE {{OfficeBuddy.Api_HostAddress}}/api/me/days/2026-10-05
 Authorization: Bearer {{Token}}
 
 ###
+
+# Admin: who, among people whose home office is this one, is missing days this ISO week
+GET {{OfficeBuddy.Api_HostAddress}}/api/offices/1/missing/2026/41
+Accept: application/json
+Authorization: Bearer {{Token}}
+
+###
+
+# Admin: post a reminder to every channel mapped to the office. 404 if the bot has not been
+# added to a team yet; 409 if the office has no mapped channel or the bot could not be reached.
+POST {{OfficeBuddy.Api_HostAddress}}/api/offices/1/send-reminder
+Accept: application/json
+Authorization: Bearer {{Token}}
+
+###
+
+# Called by the bot process when it is added to a team (not by the tab) – shared secret, no SSO token
+PUT {{OfficeBuddy.Api_HostAddress}}/internal/bot-installation
+Accept: application/json
+Content-Type: application/json
+X-Internal-Api-Key: dev-only-local-secret
+
+{ "tenantId": "test-tenant", "serviceUrl": "https://smba.trafficmanager.net/teams" }
+
+###

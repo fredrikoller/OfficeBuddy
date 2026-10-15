@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using OfficeBuddy.Api.Data;
+using OfficeBuddy.Api.Data.Entities;
+using OfficeBuddy.Api.Data.Enums;
+using OfficeBuddy.Api.Features.Offices;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,7 +15,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace OfficeBuddy.Api;
+namespace OfficeBuddy.Api.Endpoints;
 
 public record MeDto(string? DisplayName, OfficeDto? HomeOffice, bool IsAdmin);
 
