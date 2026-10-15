@@ -183,6 +183,22 @@ export const getPresence = (officeId: number, date: string) =>
 export const getMyWeek =(year: number, week: number) =>
   api.get<Week>(`/me/week/${year}/${week}`);
 
+export interface MissingPerson {
+  displayName: string;
+  missingDays: string[];
+}
+
+export interface SendReminderResult {
+  missing: { year: number; week: number; people: MissingPerson[] };
+  sentToChannelIds: string[];
+}
+
+// Admin only. Posts a reminder to every channel mapped to the office, listing who is missing
+// days this ISO week. Rejects with kind "notFound" if the bot has not been added to a team yet,
+// or "conflict" if the office has no mapped channel, or the bot could not be reached.
+export const sendReminder = (officeId: number) =>
+  api.post<SendReminderResult>(`/offices/${officeId}/send-reminder`);
+
 // officeId is the office the user fills in from (the channel's office).
 export const saveMyWeek = (officeId: number, days: Day[]) =>
   api.put<Week>("/me/week", { officeId, days });

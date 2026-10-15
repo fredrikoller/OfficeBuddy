@@ -28,13 +28,19 @@ provision:
     writeToEnvironmentFile:
       teamsAppId: TEAMS_APP_ID
 
-  # Set TAB_DOMAIN, TAB_ENDPOINT and API_DOMAIN for local launch
+  # Set TAB_DOMAIN, TAB_ENDPOINT, API_DOMAIN and a local bot internal-api-key for local launch.
+  # The bot itself runs with no real Entra app locally (see bot/.env, SKIP_AUTH=true) – there is
+  # no real BOT_ID locally. The manifest requires the variable to be set (and a GUID), so a
+  # placeholder is written; the bots[] entry is only functional once step 9 (real Azure/Entra
+  # wiring) has run.
   - uses: script
     with:
       run:
+        echo "::set-teamsfx-env BOT_ID=11111111-1111-1111-1111-111111111111";
         echo "::set-teamsfx-env TAB_DOMAIN=localhost:3978";
         echo "::set-teamsfx-env TAB_ENDPOINT=https://localhost:3978";
         echo "::set-teamsfx-env API_DOMAIN=localhost:7139";
+        echo "::set-teamsfx-env SECRET_BOT_INTERNAL_API_KEY=dev-only-local-secret";
 
   # Apply aad.manifest.json (scope access_as_user, pre-authorized Teams clients, Admin role).
   # Runs after TAB_DOMAIN is set since the application ID URI contains it. TAB_DOMAIN must include

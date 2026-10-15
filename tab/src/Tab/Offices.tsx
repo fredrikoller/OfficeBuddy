@@ -16,7 +16,7 @@ import {
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
-import { DeleteRegular, EditRegular } from "@fluentui/react-icons";
+import { DeleteRegular, EditRegular, SendRegular } from "@fluentui/react-icons";
 
 import {
   ApiError,
@@ -24,6 +24,7 @@ import {
   deleteOffice,
   getOffices,
   renameOffice,
+  sendReminder,
   type Office,
 } from "./api";
 
@@ -95,6 +96,11 @@ export default function Offices({ onChanged }: OfficesProps) {
   const [dialog, setDialog] = useState<OpenDialog>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [reminder, setReminder] = useState<{
+    officeId: number;
+    kind: "success" | "error";
+    text: string;
+  }>();
 
   const load = () =>
     getOffices()
@@ -126,6 +132,37 @@ export default function Offices({ onChanged }: OfficesProps) {
     const name = newName.trim();
     if (await run(() => createOffice(name), nameTaken(name))) {
       setNewName("");
+    }
+  };
+
+  const remind = async (office: Office) => {
+    setBusy(true);
+    setReminder(undefined);
+    try {
+      const result = await sendReminder(office.id);
+      const summary =
+        result.missing.people.length === 0
+          ? "alla hade fyllt i hela veckan"
+          : result.missing.people
+              .map((p) => `${p.displayName} (${p.missingDays.length} dag(ar))`)
+              .join(", ");
+      setReminder({
+        officeId: office.id,
+        kind: "success",
+        text: `Påminnelse skickad till ${result.sentToChannelIds.length} kanal(er). Saknade dagar: ${summary}.`,
+      });
+    } catch (e) {
+      const text =
+        e instanceof ApiError && e.kind === "notFound"
+          ? "Boten är inte tillagd i något team än."
+          : e instanceof ApiError && e.kind === "conflict"
+            ? "Kontoret är inte kopplat till någon kanal, eller boten gick inte att nå."
+            : e instanceof ApiError
+              ? e.message
+              : "Något gick fel. Ladda om fliken och försök igen.";
+      setReminder({ officeId: office.id, kind: "error", text });
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -166,6 +203,13 @@ export default function Offices({ onChanged }: OfficesProps) {
               <Text>{office.name}</Text>
               <div className={styles.actions}>
                 <Button
+                  icon={<SendRegular />}
+                  disabled={busy}
+                  onClick={() => remind(office)}
+                >
+                  Skicka påminnelse
+                </Button>
+                <Button
                   icon={<EditRegular />}
                   disabled={busy}
                   onClick={() =>
@@ -182,6 +226,13 @@ export default function Offices({ onChanged }: OfficesProps) {
                   Ta bort
                 </Button>
               </div>
+              {reminder?.officeId === office.id && (
+                <MessageBar
+                  intent={reminder.kind === "success" ? "success" : "error"}
+                >
+                  <MessageBarBody>{reminder.text}</MessageBarBody>
+                </MessageBar>
+              )}
             </li>
           ))}
         </ul>

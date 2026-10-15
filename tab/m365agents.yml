@@ -31,6 +31,23 @@ provision:
     writeToEnvironmentFile:
       teamsAppId: TEAMS_APP_ID
 
+  # TBD: verify this action name and its with/output fields against https://aka.ms/teamsfx-actions
+  # before provisioning. Creates the bot's own Entra app (separate from the tab's SSO app above).
+  - uses: botAadApp/create
+    with:
+      name: office-buddy-bot${{APP_NAME_SUFFIX}}
+    writeToEnvironmentFile:
+      botId: BOT_ID
+      botPassword: SECRET_BOT_PASSWORD
+
+  # A random shared secret for the API<->bot server-to-server calls (see
+  # api/OfficeBuddy.Api/InternalAuth.cs and bot/src/index.ts) – not tied to any Microsoft
+  # identity, so a plain script generates it instead of a dedicated toolkit action.
+  - uses: script
+    with:
+      run:
+        echo "::set-teamsfx-env SECRET_BOT_INTERNAL_API_KEY=$(openssl rand -hex 32)";
+
   - uses: arm/deploy # Deploy given ARM templates parallelly.
     with:
       # AZURE_SUBSCRIPTION_ID is a built-in environment variable,
@@ -128,6 +145,25 @@ deploy:
       workingDirectory: ../api/OfficeBuddy.Api
       artifactFolder: bin/publish
       resourceId: ${{API_APP_SERVICE_RESOURCE_ID}}
+
+  # The bot: build and zip deploy to its own App Service app.
+  - uses: cli/runNpmCommand
+    name: install bot dependencies
+    with:
+      workingDirectory: ../bot
+      args: install
+
+  - uses: cli/runNpmCommand
+    name: build bot
+    with:
+      workingDirectory: ../bot
+      args: run build --if-present
+
+  - uses: azureAppService/zipDeploy
+    with:
+      workingDirectory: ../bot
+      artifactFolder: .
+      resourceId: ${{BOT_APP_SERVICE_RESOURCE_ID}}
 
 publish:
 
